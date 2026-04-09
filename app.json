@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "meau",
+    "name": "Meau",
     "slug": "meau",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,9 +12,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -23,8 +20,16 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "node_modules/@expo-google-fonts/courgette/400Regular/Courgette_400Regular.ttf",
+            "node_modules/@expo-google-fonts/roboto/400Regular/Roboto_400Regular.ttf"
+          ]
+        }
+      ]
+    ]
   }
 }
