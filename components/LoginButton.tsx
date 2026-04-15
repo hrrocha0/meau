@@ -1,23 +1,25 @@
-import { Pressable, StyleSheet, Text } from "react-native";
-import { useFonts } from "expo-font";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
+import { useFonts } from "expo-font";
+import { useRouter } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export function LoginButton() {
-    useFonts({ Roboto_400Regular })
+    const router = useRouter();
+
+    useFonts({ Roboto_400Regular });
 
     return (
-        <Pressable>
+        <TouchableOpacity onPress={() => { router.navigate('/login') }}>
             <Text style={styles.text}>login</Text>
-        </Pressable>
-    )
+        </TouchableOpacity>
+    );
 }
 
 const styles = StyleSheet.create({
     text: {
-        marginTop: 44,
-        textAlign: 'center',
         fontFamily: 'Roboto_400Regular',
         fontSize: 16,
+        textAlign: 'center',
         color: '#88c9bf',
     }
 });

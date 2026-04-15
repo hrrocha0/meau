@@ -1,18 +1,17 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getDatabase } from 'firebase/database';
 
-// Puxando as variáveis seguras do seu arquivo .env
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
+    apiKey: "AIzaSyB0kr53HPYz2lCUZH2gcB1h61-WG2xYwO4",
+    authDomain: "meau-hrrocha.firebaseapp.com",
+    projectId: "meau-hrrocha",
+    storageBucket: "meau-hrrocha.firebasestorage.app",
+    messagingSenderId: "7488868550",
+    appId: "1:7488868550:web:73f7e0d05ceb3ad0c347c7"
 };
 
-// Inicializando o Firebase
 const app = initializeApp(firebaseConfig);
 
-// Exportando a Autenticação para usarmos na tela de Login
 export const auth = getAuth(app);
+export const db = getDatabase(app);

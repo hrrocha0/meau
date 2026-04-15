@@ -1,14 +1,17 @@
-import { Pressable, StyleSheet, Text } from "react-native";
 import { useFonts } from "@expo-google-fonts/courgette";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
+import { useRouter } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export function MenuButton({ text = '' }) {
+    const router = useRouter();
+
     useFonts({ Roboto_400Regular })
 
     return (
-        <Pressable style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={() => { router.navigate('/error') }}>
             <Text style={styles.text}>{text}</Text>
-        </Pressable>
+        </TouchableOpacity>
     )
 }
 
@@ -16,17 +19,15 @@ const styles = StyleSheet.create({
     button: {
         width: 232,
         height: 40,
-        margin: 12,
         borderRadius: 2,
         elevation: 4,
-        alignSelf: 'center',
         justifyContent: 'center',
         backgroundColor: '#ffd358',
     },
     text: {
-        textAlign: 'center',
         fontFamily: 'Roboto_400Regular',
         fontSize: 12,
+        textAlign: 'center',
         color: '#434343',
     }
 });
