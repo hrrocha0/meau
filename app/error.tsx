@@ -31,13 +31,13 @@ export default function Error() {
                     Você não pode realizar esta ação sem possuir um cadastro.
                 </Text>
 
-                <TouchableOpacity style={styles.botaoPadrao}>
+                <TouchableOpacity style={styles.botaoPadrao} onPress={() => { router.navigate("/signup") }}>
                     <Text style={styles.botaoText}>FAZER CADASTRO</Text>
                 </TouchableOpacity>
 
                 <Text style={styles.perguntinha}>Já possui cadastro?</Text>
 
-                <TouchableOpacity style={styles.botaoPadrao} onPress={() => { router.navigate('/login') }}>
+                <TouchableOpacity style={styles.botaoPadrao} onPress={() => { router.navigate("/login") }}>
                     <Text style={styles.botaoText}>FAZER LOGIN</Text>
                 </TouchableOpacity>
             </View>

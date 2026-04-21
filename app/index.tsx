@@ -1,82 +1,108 @@
 import { Courgette_400Regular } from "@expo-google-fonts/courgette";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import { useFonts } from "expo-font";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { SplashScreen, useRouter } from "expo-router";
+import { useEffect } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AppButton } from "../components/appButton";
 import { Brand } from "../components/brand";
-import { LoginButton } from "../components/loginButton";
-import { MenuButton } from "../components/menuButton";
-import { MenuIcon } from "../components/menuIcon";
+import { DrawerButton } from "../components/drawerButton";
+import { colors } from "../constants";
+
 
 export default function Index() {
-    useFonts({ Courgette_400Regular, Roboto_400Regular });
+    // Carrega o router para a navegação entre telas
+
+    const router = useRouter();
+
+    // Carrega as fontes utilizadas na página
+
+    const [loaded, error] = useFonts({ Courgette_400Regular, Roboto_400Regular });
+
+    useEffect(() => {
+        if (loaded || error) {
+            SplashScreen.hideAsync();
+        }
+    }, [loaded, error]);
+
+    if (!loaded && !error) {
+        return null;
+    }
+
+    // Implementação da tela
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.screen}>
             <View style={styles.header}>
-                <MenuIcon color="#88c9bf" />
+                <SafeAreaView edges={["top"]}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <View style={{ margin: 12 }}>
+                            <DrawerButton color={colors.secondary} />
+                        </View>
+                    </View>
+                </SafeAreaView>
             </View>
             <View style={styles.body}>
-                <Text style={styles.title}>Olá!</Text>
-                <Text style={styles.text}>
-                    Bem vindo ao Meau!{'\n'}
-                    Aqui você pode adotar, doar e ajudar{'\n'}
-                    cães e gatos com facilidade.{'\n'}
-                    Qual o seu interesse?
-                </Text>
-                <View style={styles.options}>
-                    <MenuButton text="ADOTAR" />
-                    <MenuButton text="AJUDAR" />
-                    <MenuButton text="CADASTRAR ANIMAL" />
-                </View>
-                <View style={styles.login}>
-                    <LoginButton />
-                </View>
-                <View style={styles.brand}>
-                    <Brand />
-                </View>
+                <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+                    <ScrollView contentContainerStyle={{ alignItems: "center" }}>
+                        <View style={{ marginTop: 8 }}>
+                            <Text style={styles.text0}>Olá!</Text>
+                        </View>
+                        <View style={{ marginTop: 52 }}>
+                            <Text style={styles.text1}>
+                                Bem vindo ao Meau!{`\n`}
+                                Aqui você pode adotar, doar e ajudar{`\n`}
+                                cães e gatos com facilidade.{`\n`}
+                                Qual o seu interesse?
+                            </Text>
+                        </View>
+                        <View style={{ marginTop: 48, gap: 12 }}>
+                            <AppButton text="ADOTAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
+                            <AppButton text="AJUDAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
+                            <AppButton text="CADASTRAR ANIMAL" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
+                        </View>
+                        <View style={{ marginTop: 44 }}>
+                            <TouchableOpacity onPress={() => { router.navigate("/login") }}>
+                                <Text style={styles.text2}>login</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ marginTop: 68, marginBottom: 32 }}>
+                            <Brand />
+                        </View>
+                    </ScrollView>
+                </SafeAreaView>
             </View>
-            <StatusBar style="auto" />
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    screen: {
         flex: 1,
-        backgroundColor: '#fafafa',
+        backgroundColor: colors.surface,
     },
     header: {
-        margin: 12,
     },
     body: {
         flex: 1,
-        flexDirection: 'column',
-        alignItems: 'center',
     },
-    title: {
-        fontFamily: 'Courgette_400Regular',
+    text0: {
+        textAlign: "center",
+        fontFamily: "Courgette_400Regular",
         fontSize: 72,
-        textAlign: 'center',
-        color: '#ffd358',
-        marginTop: 8,
+        color: colors.primary,
     },
-    text: {
-        fontFamily: 'Roboto_400Regular',
+    text1: {
+        textAlign: "center",
+        fontFamily: "Roboto_400Regular",
         fontSize: 16,
-        textAlign: 'center',
-        color: '#757575',
-        marginTop: 52,
+        color: colors.onSurface,
     },
-    options: {
-        marginTop: 48,
-        gap: 12,
+    text2: {
+        textAlign: "center",
+        fontFamily: "Roboto_400Regular",
+        fontSize: 16,
+        color: colors.secondary,
     },
-    login: {
-        marginTop: 44,
-    },
-    brand: {
-        marginTop: 68,
-    }
 });
