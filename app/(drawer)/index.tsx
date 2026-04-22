@@ -1,20 +1,22 @@
 import { Courgette_400Regular } from "@expo-google-fonts/courgette";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
+import { DrawerActions } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { SplashScreen, useRouter } from "expo-router";
+import { SplashScreen, useNavigation, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppButton } from "../components/appButton";
-import { Brand } from "../components/brand";
-import { DrawerButton } from "../components/drawerButton";
-import { colors } from "../constants";
+import { AppButton } from "../../components/appButton";
+import { Brand } from "../../components/brand";
+import { DrawerButton } from "../../components/drawerButton";
+import { colors } from "../../constants";
 
 
 export default function Index() {
     // Carrega o router para a navegação entre telas
 
     const router = useRouter();
+    const navigation = useNavigation();
 
     // Carrega as fontes utilizadas na página
 
@@ -38,7 +40,10 @@ export default function Index() {
                 <SafeAreaView edges={["top"]}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <View style={{ margin: 12 }}>
-                            <DrawerButton color={colors.secondary} />
+                            <DrawerButton
+                                color={colors.secondary}
+                                onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                            />
                         </View>
                     </View>
                 </SafeAreaView>
