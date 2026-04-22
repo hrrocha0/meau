@@ -1,18 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Text, TouchableOpacity } from "react-native";
+import { DimensionValue, Text, TouchableOpacity } from "react-native";
 import { colors } from "../constants";
 
 type ImageButtonProps = {
+    width?: DimensionValue | undefined,
+    height?: DimensionValue | undefined,
+    text?: string,
     onPress?: () => void,
 };
 
-export function ImageButton({ onPress = () => { } }: ImageButtonProps) {
+export function ImageButton({ width=128,height=128, text = "adicionar foto", onPress = () => { } }: ImageButtonProps) {
     return (
         <TouchableOpacity style={{
             justifyContent: "center",
             alignItems: "center",
-            width: 128,
-            height: 128,
+            width: width,
+            height: height,
             borderRadius: 2,
             elevation: 4,
             backgroundColor: colors.surfaceContainer,
@@ -23,7 +26,7 @@ export function ImageButton({ onPress = () => { } }: ImageButtonProps) {
                 fontFamily: "Roboto_400Regular",
                 fontSize: 14,
                 color: colors.onSurfaceContainer,
-            }}>adicionar foto</Text>
+            }}>{text}</Text>
         </TouchableOpacity>
     );
 }

@@ -1,18 +1,19 @@
-import { ColorValue, Text, TouchableOpacity } from "react-native";
+import { ColorValue, DimensionValue, Text, TouchableOpacity } from "react-native";
 
 type AppButtonProps = {
+    width?: DimensionValue | undefined,
     text?: string,
     backgroundColor?: ColorValue | undefined,
     textColor?: ColorValue | undefined,
     onPress?: () => void,
 };
 
-export function AppButton({ text = "", backgroundColor = "silver", textColor = "black", onPress = () => { } }: AppButtonProps) {
+export function AppButton({ width = 232, text = "", backgroundColor = "silver", textColor = "black", onPress = () => { } }: AppButtonProps) {
     return (
         <TouchableOpacity style={{
             justifyContent: "center",
             alignItems: "center",
-            width: 232,
+            width: width,
             height: 40,
             borderRadius: 2,
             elevation: 4,

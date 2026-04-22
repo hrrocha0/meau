@@ -1,6 +1,7 @@
 import { Roboto_400Regular, Roboto_500Medium } from "@expo-google-fonts/roboto";
 import { useFonts } from "expo-font";
 import { SplashScreen, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -64,6 +65,7 @@ export default function SignUp() {
 
     return (
         <View style={styles.screen}>
+            <StatusBar style="dark" />
             <View style={styles.header}>
                 <SafeAreaView edges={["top"]}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>

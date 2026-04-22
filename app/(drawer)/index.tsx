@@ -3,6 +3,7 @@ import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 import { DrawerActions } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { SplashScreen, useNavigation, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -36,6 +37,7 @@ export default function Index() {
 
     return (
         <View style={styles.screen}>
+            <StatusBar style="dark" />
             <View style={styles.header}>
                 <SafeAreaView edges={["top"]}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
