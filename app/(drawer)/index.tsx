@@ -67,7 +67,7 @@ export default function Index() {
                         <View style={{ marginTop: 48, gap: 12 }}>
                             <AppButton text="ADOTAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
                             <AppButton text="AJUDAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
-                            <AppButton text="CADASTRAR ANIMAL" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
+                            <AppButton text="CADASTRAR ANIMAL" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/pets/register") }} />
                         </View>
                         <View style={{ marginTop: 44 }}>
                             <TouchableOpacity onPress={() => { router.navigate("/login") }}>

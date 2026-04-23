@@ -3,15 +3,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { SplashScreen, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "../../components/appButton";
+import { Checkbox } from "../../components/checkbox";
 import { ImageButton } from "../../components/imageButton";
+import { Checklist } from "../../components/input/checklist";
+import { RadioList } from "../../components/input/radioList";
 import { InputField } from "../../components/inputField";
 import { colors } from "../../constants";
 
 export default function Register() {
+    const [extraCheckboxesEnabled, setExtraCheckboxesEnabled] = useState(false);
     // Carrega o router para a navegação entre telas
 
     const router = useRouter();
@@ -79,156 +83,40 @@ export default function Register() {
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>ESPÉCIE</Text>
                             </View>
-                            <View style={{ flexDirection: "row", marginTop: 16 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Cachorro</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Gato</Text>
-                                </View>
+                            <View style={{ marginTop: 16 }}>
+                                <RadioList items={["Cachorro", "Gato"]} />
                             </View>
                             <View style={{ marginTop: 20 }}>
-                                <Text style={styles.text3}>Sexo</Text>
+                                <Text style={styles.text3}>SEXO</Text>
                             </View>
-                            <View style={{ flexDirection: "row", marginTop: 16 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Macho</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Fêmea</Text>
-                                </View>
+                            <View style={{ marginTop: 16 }}>
+                                <RadioList items={["Macho", "Fêmea"]} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>PORTE</Text>
                             </View>
-                            <View style={{ flexDirection: "row", marginTop: 16 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Pequeno</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Médio</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 220 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Grande</Text>
-                                </View>
+                            <View style={{ marginTop: 16 }}>
+                                <RadioList items={["Pequeno", "Médio", "Grande"]} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>IDADE</Text>
                             </View>
-                            <View style={{ flexDirection: "row", marginTop: 16 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Filhote</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Adulto</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 220 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="radio-button-off" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Idoso</Text>
-                                </View>
+                            <View style={{ marginTop: 16 }}>
+                                <RadioList items={["Filhote", "Adulto", "Idoso"]} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>TEMPERAMENTO</Text>
                             </View>
-                            <View style={{ flexDirection: "row", marginTop: 16 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Brincalhão</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Tímido</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 220 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Calmo</Text>
-                                </View>
-                            </View>
-                            <View style={{ flexDirection: "row", marginTop: 28 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Guarda</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Amoroso</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 220 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Preguiçoso</Text>
-                                </View>
+                            <View style={{ marginTop: 16, gap: 28 }}>
+                                <Checklist items={["Brincalhão", "Tímido", "Calmo"]} />
+                                <Checklist items={["Guarda", "Amoroso", "Preguiçoso"]} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>SAÚDE</Text>
                             </View>
-                            <View style={{ flexDirection: "row", marginTop: 16 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Vacinado</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Vermifugado</Text>
-                                </View>
-                            </View>
-                            <View style={{ flexDirection: "row", marginTop: 28 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Castrado</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center", position: "absolute", marginLeft: 124 }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Doente</Text>
-                                </View>
+                            <View style={{ marginTop: 16, gap: 28 }}>
+                                <Checklist items={["Vacinado", "Vermifugado"]} />
+                                <Checklist items={["Castrado", "Doente"]} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <InputField placeholder="Doenças do animal" />
@@ -237,49 +125,14 @@ export default function Register() {
                                 <Text style={styles.text3}>EXIGÊNCIAS PARA ADOÇÃO</Text>
                             </View>
                             <View style={{ marginTop: 20, gap: 28 }}>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Termo de adoção</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Fotos da casa</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Visita prévia ao animal</Text>
-                                </View>
-                                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                    <TouchableOpacity>
-                                        <Ionicons name="square-outline" size={24} color="#757575" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.text4}>Acompanhamento pós adoção</Text>
-                                </View>
+                                <Checkbox text="Termos de adoção" />
+                                <Checkbox text="Fotos da casa" />
+                                <Checkbox text="Visita prévia ao animal" />
+                                <Checkbox text="Acompanhamento pós adoção" onToggle={(selected) => { setExtraCheckboxesEnabled(selected) }} />
                                 <View style={{ marginLeft: 60, gap: 28 }}>
-                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <TouchableOpacity>
-                                            <Ionicons name="square-outline" size={24} color="#bdbdbd" />
-                                        </TouchableOpacity>
-                                        <Text style={styles.text5}>1 mês</Text>
-                                    </View>
-                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <TouchableOpacity>
-                                            <Ionicons name="square-outline" size={24} color="#bdbdbd" />
-                                        </TouchableOpacity>
-                                        <Text style={styles.text5}>3 meses</Text>
-                                    </View>
-                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                        <TouchableOpacity>
-                                            <Ionicons name="square-outline" size={24} color="#bdbdbd" />
-                                        </TouchableOpacity>
-                                        <Text style={styles.text5}>6 meses</Text>
-                                    </View>
+                                    <Checkbox text="1 mês" disabled={!extraCheckboxesEnabled} />
+                                    <Checkbox text="3 meses" disabled={!extraCheckboxesEnabled} />
+                                    <Checkbox text="6 meses" disabled={!extraCheckboxesEnabled} />
                                 </View>
                             </View>
                             <View style={{ marginTop: 28 }}>
