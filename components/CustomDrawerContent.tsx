@@ -6,12 +6,15 @@ import {
 import { router } from "expo-router";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function CustomDrawerContent(
   props: DrawerContentComponentProps,
 ) {
+  const { logout, profile, user } = useAuth();
+  const isLoggedIn = !!user;
   const [openSections, setOpenSections] = useState({
-    perfil: true,
+    conta: true,
     atalhos: true,
     informacoes: true,
     configuracoes: true,
@@ -29,85 +32,133 @@ export default function CustomDrawerContent(
     }));
   }
 
+  async function handleLogout() {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    try {
+      await logout();
+      props.navigation.closeDrawer();
+      router.replace("/login");
+    } catch (error) {
+      console.error("Erro ao sair da conta:", error);
+    }
+  }
+
+  const profileName =
+    profile?.username ?? profile?.name ?? user?.email?.split("@")[0] ?? "Visitante";
+
   return (
     <DrawerContentScrollView
       {...props}
       style={styles.drawerScroll}
       contentContainerStyle={styles.scrollContent}
-      scrollEnabled={false}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
     >
-      <View style={styles.header}>
-        <Image
-          source={{
-            uri: "https://i.pravatar.cc/150?img=32",
-          }}
-          style={styles.avatar}
-        />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          {isLoggedIn ? (
+            <Image
+              source={{
+                uri: "https://i.pravatar.cc/150?img=32",
+              }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person-outline" size={30} color="#434343" />
+            </View>
+          )}
+          <Text style={styles.headerTitle}>{profileName}</Text>
+          <Text style={styles.headerSubtitle}>
+            {isLoggedIn ? "" : "Entre ou crie sua conta para cadastrar e acompanhar pets."}
+          </Text>
+        </View>
+
+        <DropdownSection
+          title={isLoggedIn ? "Minha conta" : "Acesso"}
+          color="#88C9BF"
+          isOpen={openSections.conta}
+          onPress={() => toggleSection("conta")}
+        >
+          {isLoggedIn ? (
+            <>
+              <MenuItem label="Meu perfil" onPress={() => goTo("/meu-perfil")} />
+              <MenuItem label="Meus pets" onPress={() => goTo("/meus-pets")} />
+              <MenuItem label="Favoritos" onPress={() => goTo("/favoritos")} />
+              <MenuItem label="Chat" onPress={() => goTo("/chat")} />
+            </>
+          ) : (
+            <>
+              <MenuItem label="Entrar" onPress={() => goTo("/login")} />
+              <MenuItem label="Criar conta" onPress={() => goTo("/signup")} />
+            </>
+          )}
+        </DropdownSection>
+
+        <DropdownSection
+          color="#FEE29B"
+          icon={<MaterialIcons name="pets" size={22} color="#757575" />}
+          title="Atalhos"
+          isOpen={openSections.atalhos}
+          onPress={() => toggleSection("atalhos")}
+        >
+          {isLoggedIn ? (
+            <MenuItem
+              label="Cadastrar um pet"
+              onPress={() => goTo("/cadastro-aviso")}
+            />
+          ) : (
+            <MenuItem
+              label="Cadastrar um pet"
+              onPress={() => goTo("/login")}
+            />
+          )}
+          <MenuItem label="Adotar um pet" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Ajudar um pet" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Apadrinhar um pet" onPress={() => goTo("/(drawer)")} />
+        </DropdownSection>
+
+        <DropdownSection
+          color="#CFE9E5"
+          icon={
+            <Ionicons
+              name="information-circle-outline"
+              size={22}
+              color="#757575"
+            />
+          }
+          title="Informações"
+          isOpen={openSections.informacoes}
+          onPress={() => toggleSection("informacoes")}
+        >
+          <MenuItem label="Dicas" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Eventos" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Legislação" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Termo de adoção" onPress={() => goTo("/(drawer)")} />
+        </DropdownSection>
+
+        <DropdownSection
+          color="#E6E7E8"
+          icon={<Ionicons name="settings-outline" size={22} color="#757575" />}
+          title="Configurações"
+          isOpen={openSections.configuracoes}
+          onPress={() => toggleSection("configuracoes")}
+        >
+          <MenuItem label="Privacidade" onPress={() => goTo("/(drawer)")} />
+        </DropdownSection>
+
+        {isLoggedIn ? (
+          <Pressable
+            style={styles.logoutButton}
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutText}>Sair</Text>
+          </Pressable>
+        ) : null}
       </View>
-
-      <DropdownSection
-        title="Nome do perfil"
-        color="#88C9BF"
-        isOpen={openSections.perfil}
-        onPress={() => toggleSection("perfil")}
-      >
-        <MenuItem label="Meu perfil" onPress={() => goTo("/meu-perfil")} />
-        <MenuItem label="Meus pets" onPress={() => goTo("/meus-pets")} />
-        <MenuItem label="Favoritos" onPress={() => goTo("/favoritos")} />
-        <MenuItem label="Chat" onPress={() => goTo("/chat")} />
-      </DropdownSection>
-
-      <DropdownSection
-        color="#FEE29B"
-        icon={<MaterialIcons name="pets" size={22} color="#757575" />}
-        title="Atalhos"
-        isOpen={openSections.atalhos}
-        onPress={() => toggleSection("atalhos")}
-      >
-        <MenuItem
-          label="Cadastrar um pet"
-          onPress={() => goTo("/cadastro-aviso")}
-        />
-        <MenuItem label="Adotar um pet" onPress={() => goTo("/(drawer)")} />
-        <MenuItem label="Ajudar um pet" onPress={() => goTo("/(drawer)")} />
-        <MenuItem label="Apadrinhar um pet" onPress={() => goTo("/(drawer)")} />
-      </DropdownSection>
-
-      <DropdownSection
-        color="#CFE9E5"
-        icon={
-          <Ionicons
-            name="information-circle-outline"
-            size={22}
-            color="#757575"
-          />
-        }
-        title="Informações"
-        isOpen={openSections.informacoes}
-        onPress={() => toggleSection("informacoes")}
-      >
-        <MenuItem label="Dicas" onPress={() => goTo("/(drawer)")} />
-        <MenuItem label="Eventos" onPress={() => goTo("/(drawer)")} />
-        <MenuItem label="Legislação" onPress={() => goTo("/(drawer)")} />
-        <MenuItem label="Termo de adoção" onPress={() => goTo("/(drawer)")} />
-      </DropdownSection>
-
-      <DropdownSection
-        color="#E6E7E8"
-        icon={<Ionicons name="settings-outline" size={22} color="#757575" />}
-        title="Configurações"
-        isOpen={openSections.configuracoes}
-        onPress={() => toggleSection("configuracoes")}
-      >
-        <MenuItem label="Privacidade" onPress={() => goTo("/(drawer)")} />
-      </DropdownSection>
-
-      <Pressable
-        style={styles.logoutButton}
-        onPress={() => router.replace("/login")}
-      >
-        <Text style={styles.logoutText}>Sair</Text>
-      </Pressable>
     </DrawerContentScrollView>
   );
 }
@@ -168,25 +219,29 @@ function MenuItem({
 
 const styles = StyleSheet.create({
   drawerScroll: {
+    flex: 1,
     margin: 0,
     padding: 0,
     backgroundColor: "#F7F7F7",
   },
   scrollContent: {
-    flexGrow: 1,
     margin: 0,
     paddingTop: 0,
-    paddingBottom: 0,
-    paddingVertical: 0,
-    paddingEnd: 0,
+    paddingBottom: 24,
+    paddingHorizontal: 0,
     paddingStart: 0,
+    paddingEnd: 0,
     backgroundColor: "#F7F7F7",
+  },
+  content: {
+    minHeight: "100%",
   },
   header: {
     backgroundColor: "#88C9BF",
-    height: 172,
+    minHeight: 172,
     paddingHorizontal: 16,
     paddingTop: 40,
+    paddingBottom: 24,
     justifyContent: "center",
   },
   avatar: {
@@ -195,10 +250,26 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     marginBottom: 14,
   },
-  userName: {
-    fontSize: 14,
-    fontWeight: "500",
+  avatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginBottom: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F7F7F7",
+  },
+  headerTitle: {
+    fontFamily: "Roboto_500Medium",
+    fontSize: 16,
     color: "#434343",
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontFamily: "Roboto_400Regular",
+    fontSize: 13,
+    color: "#434343",
+    lineHeight: 18,
   },
   sectionHeader: {
     minHeight: 48,
@@ -237,18 +308,18 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto_400Regular",
     fontSize: 14,
     color: "#434343",
-    marginLeft: 48,
   },
   logoutButton: {
-    marginTop: 16,
-    minHeight: 48,
-    backgroundColor: "#88C9BF",
+    marginHorizontal: 16,
+    marginTop: 24,
+    paddingVertical: 14,
     alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 6,
+    backgroundColor: "#88c9bf",
   },
   logoutText: {
+    fontFamily: "Roboto_500Medium",
     fontSize: 14,
     color: "#434343",
-    fontWeight: "500",
   },
 });

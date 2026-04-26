@@ -1,5 +1,6 @@
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../firebaseConfig';
@@ -15,6 +16,7 @@ const CORES = {
 };
 
 export default function Login() {
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
 
@@ -28,8 +30,9 @@ export default function Login() {
 
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-            alert(`Sucesso! Bem-vindo, ${userCredential.user.email}`);
+            alert(`Sucesso! Bem-vindo, ${userCredential.user.displayName}`);
             console.log("Deu certo!", userCredential.user);
+            router.replace("/(drawer)");
         } catch (error: any) {
             alert(`Erro no Login: ${error.message}`);
             console.error("Erro completo do Firebase:", error);

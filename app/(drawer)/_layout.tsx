@@ -15,6 +15,12 @@ export default function DrawerLayout() {
                     drawerLabel: "Home",
                 }}
             />
+            <Drawer.Screen
+                name="register-animal"
+                options={{
+                    drawerItemStyle: { display: "none" },
+                }}
+            />
         </Drawer>
     );
 }

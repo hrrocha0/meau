@@ -5,12 +5,13 @@ import { useFonts } from "expo-font";
 import { SplashScreen, useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "../../components/appButton";
 import { Brand } from "../../components/brand";
 import { DrawerButton } from "../../components/drawerButton";
 import { colors } from "../../constants";
+import { useAuth } from "../../contexts/AuthContext";
 
 
 export default function Index() {
@@ -18,6 +19,7 @@ export default function Index() {
 
     const router = useRouter();
     const navigation = useNavigation();
+    const { profile, user } = useAuth();
 
     // Carrega as fontes utilizadas na página
 
@@ -54,7 +56,9 @@ export default function Index() {
                 <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
                     <ScrollView contentContainerStyle={{ alignItems: "center" }}>
                         <View style={{ marginTop: 8 }}>
-                            <Text style={styles.text0}>Olá!</Text>
+                            <Text style={styles.text0}>
+                                Olá, {profile?.username ?? user?.email?.split("@")[0] ?? "usuário"}!
+                            </Text>
                         </View>
                         <View style={{ marginTop: 52 }}>
                             <Text style={styles.text1}>
@@ -65,14 +69,8 @@ export default function Index() {
                             </Text>
                         </View>
                         <View style={{ marginTop: 48, gap: 12 }}>
-                            <AppButton text="ADOTAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
-                            <AppButton text="AJUDAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/error") }} />
-                            <AppButton text="CADASTRAR ANIMAL" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.navigate("/pets/register") }} />
-                        </View>
-                        <View style={{ marginTop: 44 }}>
-                            <TouchableOpacity onPress={() => { router.navigate("/login") }}>
-                                <Text style={styles.text2}>login</Text>
-                            </TouchableOpacity>
+                            <AppButton text="ADOTAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.push("/error") }} />
+                            <AppButton text="CADASTRAR ANIMAL" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.push("/register-animal") }} />
                         </View>
                         <View style={{ marginTop: 68, marginBottom: 32 }}>
                             <Brand />
@@ -97,19 +95,14 @@ const styles = StyleSheet.create({
     text0: {
         textAlign: "center",
         fontFamily: "Courgette_400Regular",
-        fontSize: 72,
+        fontSize: 44,
         color: colors.primary,
+        paddingHorizontal: 20,
     },
     text1: {
         textAlign: "center",
         fontFamily: "Roboto_400Regular",
         fontSize: 16,
         color: colors.onSurface,
-    },
-    text2: {
-        textAlign: "center",
-        fontFamily: "Roboto_400Regular",
-        fontSize: 16,
-        color: colors.secondary,
     },
 });

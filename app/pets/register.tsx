@@ -6,21 +6,29 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { AppButton } from "../../components/appButton";
-import { Checkbox } from "../../components/checkbox";
 import { ImageButton } from "../../components/imageButton";
 import { Checklist } from "../../components/input/checklist";
 import { RadioList } from "../../components/input/radioList";
 import { InputField } from "../../components/inputField";
 import { colors } from "../../constants";
+import { useAuth } from "../../contexts/AuthContext";
+import { db } from "../../firebaseConfig";
 
 export default function Register() {
-    const [extraCheckboxesEnabled, setExtraCheckboxesEnabled] = useState(false);
-    // Carrega o router para a navegação entre telas
-
     const router = useRouter();
-
-    // Carrega as fontes utilizadas na página
+    const { isAuthResolved, user } = useAuth();
+    const [animalName, setAnimalName] = useState("");
+    const [species, setSpecies] = useState("");
+    const [sex, setSex] = useState("");
+    const [size, setSize] = useState("");
+    const [ageGroup, setAgeGroup] = useState("");
+    const [temperaments, setTemperaments] = useState<string[]>([]);
+    const [healthItems, setHealthItems] = useState<string[]>([]);
+    const [diseases, setDiseases] = useState("");
+    const [about, setAbout] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [loaded, error] = useFonts({ Roboto_400Regular, Roboto_500Medium });
 
@@ -30,11 +38,88 @@ export default function Register() {
         }
     }, [loaded, error]);
 
+    function resetForm() {
+        setAnimalName("");
+        setSpecies("");
+        setSex("");
+        setSize("");
+        setAgeGroup("");
+        setTemperaments([]);
+        setHealthItems([]);
+        setDiseases("");
+        setAbout("");
+        setIsSubmitting(false);
+    }
+
+    useEffect(() => {
+        if (!isAuthResolved) {
+            return;
+        }
+
+        if (!user) {
+            router.replace("/error");
+        }
+    }, [isAuthResolved, router, user]);
+
     if (!loaded && !error) {
         return null;
     }
 
-    // Implementação da tela
+    if (!isAuthResolved || !user) {
+        return null;
+    }
+
+    const currentUser = user;
+
+    const missingFields = [
+        animalName.trim().length >= 2 ? null : "nome",
+        species.trim().length > 0 ? null : "espécie",
+        sex.trim().length > 0 ? null : "sexo",
+        size.trim().length > 0 ? null : "porte",
+        ageGroup.trim().length > 0 ? null : "idade",
+        about.trim().length >= 3 ? null : "descrição",
+    ].filter(Boolean);
+
+    const isFormValid = missingFields.length === 0;
+
+    async function registerAnimal() {
+        if (isSubmitting) {
+            return;
+        }
+
+        if (!isFormValid) {
+            alert(`Preencha os campos obrigatórios: ${missingFields.join(", ")}.`);
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+
+            await addDoc(collection(db, "animals"), {
+                usuarioId: currentUser.uid,
+                nome: animalName.trim(),
+                finalidade: "adocao",
+                especie: species,
+                sexo: sex,
+                porte: size,
+                faixaEtaria: ageGroup,
+                temperamentos: temperaments,
+                saude: healthItems,
+                doencas: diseases.trim(),
+                descricao: about.trim(),
+                criadoEm: serverTimestamp(),
+            });
+
+            resetForm();
+            alert("Animal cadastrado com sucesso.");
+            router.replace("/(drawer)");
+        } catch (submitError: any) {
+            console.error("Erro ao cadastrar animal:", submitError);
+            alert(`Erro ao cadastrar animal: ${submitError.message}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
 
     return (
         <View style={styles.screen}>
@@ -61,8 +146,6 @@ export default function Register() {
                         </View>
                         <View style={{ flexDirection: "row", marginHorizontal: 24, gap: 8 }}>
                             <AppButton width={100} backgroundColor={colors.primary} textColor={colors.onPrimary} text="ADOÇÃO" />
-                            <AppButton width={100} backgroundColor="#f1f2f2" textColor="#bdbdbd" text="APADRINHAR" />
-                            <AppButton width={100} backgroundColor="#f1f2f2" textColor="#bdbdbd" text="AJUDA" />
                         </View>
                         <View>
                             <View style={{ marginTop: 16 }}>
@@ -72,7 +155,11 @@ export default function Register() {
                                 <Text style={styles.text3}>NOME DO ANIMAL</Text>
                             </View>
                             <View style={{ marginTop: 20 }}>
-                                <InputField placeholder="Nome do animal" />
+                                <InputField
+                                    placeholder="Nome do animal"
+                                    value={animalName}
+                                    onChangeText={setAnimalName}
+                                />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>FOTOS DO ANIMAL</Text>
@@ -84,66 +171,65 @@ export default function Register() {
                                 <Text style={styles.text3}>ESPÉCIE</Text>
                             </View>
                             <View style={{ marginTop: 16 }}>
-                                <RadioList items={["Cachorro", "Gato"]} />
+                                <RadioList items={["Cachorro", "Gato"]} value={species} onChange={setSpecies} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>SEXO</Text>
                             </View>
                             <View style={{ marginTop: 16 }}>
-                                <RadioList items={["Macho", "Fêmea"]} />
+                                <RadioList items={["Macho", "Fêmea"]} value={sex} onChange={setSex} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>PORTE</Text>
                             </View>
                             <View style={{ marginTop: 16 }}>
-                                <RadioList items={["Pequeno", "Médio", "Grande"]} />
+                                <RadioList items={["Pequeno", "Médio", "Grande"]} value={size} onChange={setSize} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>IDADE</Text>
                             </View>
                             <View style={{ marginTop: 16 }}>
-                                <RadioList items={["Filhote", "Adulto", "Idoso"]} />
+                                <RadioList items={["Filhote", "Adulto", "Idoso"]} value={ageGroup} onChange={setAgeGroup} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>TEMPERAMENTO</Text>
                             </View>
                             <View style={{ marginTop: 16, gap: 28 }}>
-                                <Checklist items={["Brincalhão", "Tímido", "Calmo"]} />
-                                <Checklist items={["Guarda", "Amoroso", "Preguiçoso"]} />
+                                <Checklist items={["Brincalhão", "Tímido", "Calmo"]} selectedItems={temperaments} onChange={setTemperaments} />
+                                <Checklist items={["Guarda", "Amoroso", "Preguiçoso"]} selectedItems={temperaments} onChange={setTemperaments} />
                             </View>
                             <View style={{ marginTop: 20 }}>
                                 <Text style={styles.text3}>SAÚDE</Text>
                             </View>
                             <View style={{ marginTop: 16, gap: 28 }}>
-                                <Checklist items={["Vacinado", "Vermifugado"]} />
-                                <Checklist items={["Castrado", "Doente"]} />
+                                <Checklist items={["Vacinado", "Vermifugado"]} selectedItems={healthItems} onChange={setHealthItems} />
+                                <Checklist items={["Castrado", "Doente"]} selectedItems={healthItems} onChange={setHealthItems} />
                             </View>
                             <View style={{ marginTop: 20 }}>
-                                <InputField placeholder="Doenças do animal" />
-                            </View>
-                            <View style={{ marginTop: 20 }}>
-                                <Text style={styles.text3}>EXIGÊNCIAS PARA ADOÇÃO</Text>
-                            </View>
-                            <View style={{ marginTop: 20, gap: 28 }}>
-                                <Checkbox text="Termos de adoção" />
-                                <Checkbox text="Fotos da casa" />
-                                <Checkbox text="Visita prévia ao animal" />
-                                <Checkbox text="Acompanhamento pós adoção" onToggle={(selected) => { setExtraCheckboxesEnabled(selected) }} />
-                                <View style={{ marginLeft: 60, gap: 28 }}>
-                                    <Checkbox text="1 mês" disabled={!extraCheckboxesEnabled} />
-                                    <Checkbox text="3 meses" disabled={!extraCheckboxesEnabled} />
-                                    <Checkbox text="6 meses" disabled={!extraCheckboxesEnabled} />
-                                </View>
+                                <InputField
+                                    placeholder="Doenças do animal"
+                                    value={diseases}
+                                    onChangeText={setDiseases}
+                                />
                             </View>
                             <View style={{ marginTop: 28 }}>
                                 <Text style={styles.text3}>SOBRE O ANIMAL</Text>
                             </View>
                             <View style={{ marginTop: 20 }}>
-                                <InputField placeholder="Compartilhe a história do animal" />
+                                <InputField
+                                    placeholder="Compartilhe a história do animal"
+                                    value={about}
+                                    onChangeText={setAbout}
+                                />
                             </View>
                         </View>
                         <View style={{ marginVertical: 24 }}>
-                            <AppButton text="COLOCAR PARA ADOÇÃO" backgroundColor="#ffd358" textColor="#434343" />
+                            <AppButton
+                                text={isSubmitting ? "SALVANDO..." : "COLOCAR PARA ADOÇÃO"}
+                                backgroundColor="#ffd358"
+                                textColor="#434343"
+                                onPress={registerAnimal}
+                            />
                         </View>
                     </ScrollView>
                 </SafeAreaView>
