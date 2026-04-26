@@ -5,11 +5,14 @@ import { SplashScreen, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
+  Alert,
+  Image,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +25,8 @@ import { colors } from "../constants";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../firebaseConfig";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { pickImageFromCamera, pickImageFromGallery } from "../utils/imagePicker";
+import { uploadImageAsync } from "../utils/uploadImage";
 
 const ESTADOS_BR = [
   "Acre",
@@ -87,11 +92,7 @@ function formatTelephone(value: string) {
 }
 
 export default function SignUp() {
-  // Carrega o router para a navegação entre telas
-
   const router = useRouter();
-
-  // Lógica de cadastro pessoal
 
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
@@ -103,6 +104,7 @@ export default function SignUp() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStateModalOpen, setIsStateModalOpen] = useState(false);
   const [touched, setTouched] = useState<Record<FieldName, boolean>>({
@@ -207,6 +209,34 @@ export default function SignUp() {
     return messages[field];
   }
 
+  function chooseProfileImage() {
+    console.log("clicou na foto de perfil");
+    Alert.alert("Foto de perfil", "Escolha uma opção", [
+      {
+        text: "Câmera",
+        onPress: async () => {
+          const uri = await pickImageFromCamera();
+          if (uri) {
+            setProfileImageUri(uri);
+          }
+        },
+      },
+      {
+        text: "Galeria",
+        onPress: async () => {
+          const uri = await pickImageFromGallery();
+          if (uri) {
+            setProfileImageUri(uri);
+          }
+        },
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
+  }
+
   async function registerUser() {
     if (isSubmitting) {
       return;
@@ -234,6 +264,15 @@ export default function SignUp() {
         password,
       );
 
+      let profileImageUrl = "";
+
+      if (profileImageUri) {
+        profileImageUrl = await uploadImageAsync(
+          profileImageUri,
+          `users/${userCredential.user.uid}/profile.jpg`
+        );
+      }
+
       await setDoc(doc(db, "users", userCredential.user.uid), {
         name: name.trim(),
         age: Number(age),
@@ -243,6 +282,7 @@ export default function SignUp() {
         address: address.trim(),
         telephone: telephone.trim(),
         username: username.trim(),
+        profileImageUrl,
         createdAt: serverTimestamp(),
       });
 
@@ -261,8 +301,6 @@ export default function SignUp() {
     }
   }
 
-  // Carrega as fontes utilizadas na página
-
   const [loaded, error] = useFonts({ Roboto_400Regular, Roboto_500Medium });
 
   useEffect(() => {
@@ -274,8 +312,6 @@ export default function SignUp() {
   if (!loaded && !error) {
     return null;
   }
-
-  // Implementação da tela
 
   return (
     <View style={styles.screen}>
@@ -431,7 +467,18 @@ export default function SignUp() {
                 <Text style={styles.text2}>FOTO DE PERFIL</Text>
               </View>
               <View style={{ alignItems: "center", marginTop: 32 }}>
-                <ImageButton />
+                <TouchableOpacity onPress={chooseProfileImage}>
+                  {profileImageUri ? (
+  <TouchableOpacity onPress={chooseProfileImage}>
+    <Image
+      source={{ uri: profileImageUri }}
+      style={styles.profileImagePreview}
+    />
+  </TouchableOpacity>
+) : (
+  <ImageButton onPress={chooseProfileImage} />
+)}
+                </TouchableOpacity>
               </View>
               <View
                 style={{
@@ -441,7 +488,7 @@ export default function SignUp() {
                 }}
               >
                 <AppButton
-                  text="FAZER CADASTRO"
+                  text={isSubmitting ? "FAZENDO CADASTRO..." : "FAZER CADASTRO"}
                   backgroundColor={colors.secondary}
                   textColor={colors.onSecondary}
                   onPress={registerUser}
@@ -525,6 +572,12 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto_400Regular",
     fontSize: 14,
     color: colors.secondary,
+  },
+  profileImagePreview: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    resizeMode: "cover",
   },
   modalBackdrop: {
     flex: 1,
