@@ -34,7 +34,7 @@ function AuthGate() {
             !isGuestAllowedRoute && !isHomeRoute && !isAnimalRegisterRoute;
 
         if (!user && isProtectedRoute) {
-            router.replace("/login");
+            router.replace("/(drawer)");
             return;
         }
 

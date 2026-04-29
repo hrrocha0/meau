@@ -100,7 +100,7 @@ export default function CustomDrawerContent(
 
         <DropdownSection
           color="#FEE29B"
-          icon={<MaterialIcons name="pets" size={22} color="#757575" />}
+          icon={<MaterialIcons name="pets" size={24} color="#757575" />}
           title="Atalhos"
           isOpen={openSections.atalhos}
           onPress={() => toggleSection("atalhos")}
@@ -126,7 +126,7 @@ export default function CustomDrawerContent(
           icon={
             <Ionicons
               name="information-circle-outline"
-              size={22}
+              size={24}
               color="#757575"
             />
           }
@@ -142,7 +142,7 @@ export default function CustomDrawerContent(
 
         <DropdownSection
           color="#E6E7E8"
-          icon={<Ionicons name="settings-outline" size={22} color="#757575" />}
+          icon={<Ionicons name="settings-outline" size={24} color="#757575" />}
           title="Configurações"
           isOpen={openSections.configuracoes}
           onPress={() => toggleSection("configuracoes")}
@@ -285,10 +285,10 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto_500Medium",
     fontSize: 14,
     color: "#434343",
-    marginLeft: 12,
+    marginLeft: 24,
   },
   menuItem: {
-    paddingHorizontal: 16,
+    paddingStart: 48,
     paddingTop: 16,
     paddingBottom: 20,
     borderBottomWidth: 1,

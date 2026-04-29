@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -13,12 +13,22 @@ const CORES = {
 
 export default function Error() {
     const router = useRouter();
+    const navigation = useNavigation();
+
+    function handleBackPress() {
+        if (navigation.canGoBack()) {
+            navigation.goBack();
+            return;
+        }
+
+        router.replace("/(drawer)");
+    }
 
     return (
         <View style={styles.container}>
             {/* Header com Seta de Voltar */}
             <View style={styles.header}>
-                <Ionicons name="arrow-back" size={24} color={CORES.cinzaTexto} onPress={() => { router.back() }} />
+                <Ionicons name="arrow-back" size={24} color={CORES.cinzaTexto} onPress={handleBackPress} />
                 <Text style={styles.headerTitle}>Cadastro</Text>
                 <View style={{ width: 24 }} />
             </View>
