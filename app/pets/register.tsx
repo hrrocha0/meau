@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
     Alert,
     Image,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -23,8 +24,13 @@ import { InputField } from "../../components/inputField";
 import { colors } from "../../constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { db } from "../../firebaseConfig";
-import { pickImageFromCamera, pickImageFromGallery } from "../../utils/imagePicker";
-import { uploadImageAsync } from "../../utils/uploadImage";
+import {
+    decodeBase64Image,
+    MAX_PET_PHOTOS,
+    pickPetPhotoFromCamera,
+    pickPetPhotosFromGallery,
+    type PetPhoto,
+} from "../../utils/petImages";
 
 export default function Register() {
     const router = useRouter();
@@ -39,7 +45,7 @@ export default function Register() {
     const [healthItems, setHealthItems] = useState<string[]>([]);
     const [diseases, setDiseases] = useState("");
     const [about, setAbout] = useState("");
-    const [petImageUri, setPetImageUri] = useState<string | null>(null);
+    const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [loaded, error] = useFonts({ Roboto_400Regular, Roboto_500Medium });
@@ -60,7 +66,7 @@ export default function Register() {
         setHealthItems([]);
         setDiseases("");
         setAbout("");
-        setPetImageUri(null);
+        setPetPhotos([]);
         setIsSubmitting(false);
     }
 
@@ -95,24 +101,58 @@ export default function Register() {
 
     const isFormValid = missingFields.length === 0;
 
+    function appendPetPhotos(newPhotos: PetPhoto[] | null) {
+        if (!newPhotos || newPhotos.length === 0) {
+            return;
+        }
+
+        setPetPhotos((currentPhotos) => {
+            const availableSlots = MAX_PET_PHOTOS - currentPhotos.length;
+            return [...currentPhotos, ...newPhotos.slice(0, availableSlots)];
+        });
+    }
+
+    function removePetPhoto(photoId: string) {
+        setPetPhotos((currentPhotos) => currentPhotos.filter((photo) => photo.id !== photoId));
+    }
+
+    async function choosePetPhotosFromGallery() {
+        const selectedPhotos = await pickPetPhotosFromGallery(petPhotos.length);
+
+        if (selectedPhotos?.length === 0) {
+            alert(`Você pode adicionar até ${MAX_PET_PHOTOS} fotos por animal.`);
+            return;
+        }
+
+        appendPetPhotos(selectedPhotos);
+    }
+
+    async function choosePetPhotoFromCameraOption() {
+        if (petPhotos.length >= MAX_PET_PHOTOS) {
+            alert(`Você pode adicionar até ${MAX_PET_PHOTOS} fotos por animal.`);
+            return;
+        }
+
+        appendPetPhotos(await pickPetPhotoFromCamera());
+    }
+
     function choosePetImage() {
+        if (Platform.OS === "web") {
+            void choosePetPhotosFromGallery();
+            return;
+        }
+
         Alert.alert("Foto do animal", "Escolha uma opção", [
             {
                 text: "Câmera",
                 onPress: async () => {
-                    const uri = await pickImageFromCamera();
-                    if (uri) {
-                        setPetImageUri(uri);
-                    }
+                    await choosePetPhotoFromCameraOption();
                 },
             },
             {
                 text: "Galeria",
                 onPress: async () => {
-                    const uri = await pickImageFromGallery();
-                    if (uri) {
-                        setPetImageUri(uri);
-                    }
+                    await choosePetPhotosFromGallery();
                 },
             },
             {
@@ -134,15 +174,15 @@ export default function Register() {
 
         try {
             setIsSubmitting(true);
-
-            let petImageUrl = "";
-
-            if (petImageUri) {
-                petImageUrl = await uploadImageAsync(
-                    petImageUri,
-                    `animals/${currentUser.uid}/${Date.now()}.jpg`
-                );
-            }
+            const serializedPhotos = petPhotos.map((photo) => ({
+                base64: photo.base64,
+                mimeType: photo.mimeType,
+                largura: photo.width,
+                altura: photo.height,
+            }));
+            const mainPhotoDataUri = petPhotos[0]
+                ? decodeBase64Image(petPhotos[0].base64, petPhotos[0].mimeType)
+                : "";
 
             await addDoc(collection(db, "animals"), {
                 usuarioId: currentUser.uid,
@@ -156,7 +196,9 @@ export default function Register() {
                 saude: healthItems,
                 doencas: diseases.trim(),
                 descricao: about.trim(),
-                fotoUrl: petImageUrl,
+                fotoUrl: mainPhotoDataUri,
+                fotos: serializedPhotos,
+                totalFotos: serializedPhotos.length,
                 criadoEm: serverTimestamp(),
             });
 
@@ -227,21 +269,42 @@ export default function Register() {
                             </View>
 
                             <View style={{ alignItems: "center", marginTop: 16 }}>
-                                {petImageUri ? (
-                                    <TouchableOpacity onPress={choosePetImage}>
-                                        <Image
-                                            source={{ uri: petImageUri }}
-                                            style={styles.petImagePreview}
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.photoList}
+                                >
+                                    {petPhotos.map((photo, index) => (
+                                        <View key={photo.id} style={styles.photoCard}>
+                                            <Image
+                                                source={{ uri: photo.previewUri }}
+                                                style={styles.petImagePreview}
+                                            />
+                                            <TouchableOpacity
+                                                style={styles.removePhotoButton}
+                                                onPress={() => removePetPhoto(photo.id)}
+                                            >
+                                                <Ionicons name="close-circle" size={22} color={colors.primary} />
+                                            </TouchableOpacity>
+                                            <Text style={styles.photoIndexText}>{index + 1}</Text>
+                                        </View>
+                                    ))}
+
+                                    {petPhotos.length < MAX_PET_PHOTOS ? (
+                                        <ImageButton
+                                            width={160}
+                                            height={85}
+                                            text={petPhotos.length === 0 ? "adicionar fotos" : "adicionar mais"}
+                                            onPress={choosePetImage}
                                         />
-                                    </TouchableOpacity>
-                                ) : (
-                                    <ImageButton
-                                        width={312}
-                                        height={128}
-                                        text="adicionar fotos"
-                                        onPress={choosePetImage}
-                                    />
-                                )}
+                                    ) : null}
+                                </ScrollView>
+                            </View>
+
+                            <View style={{ marginTop: 8 }}>
+                                <Text style={styles.text4}>
+                                    Até {MAX_PET_PHOTOS} fotos por animal.
+                                </Text>
                             </View>
 
                             <View style={{ marginTop: 20 }}>
@@ -365,10 +428,31 @@ const styles = StyleSheet.create({
         width: 328,
     },
     petImagePreview: {
-        width: 312,
-        height: 128,
+        width: 160,
+        height: 85,
         borderRadius: 8,
         resizeMode: "cover",
+    },
+    photoList: {
+        gap: 12,
+        paddingHorizontal: 8,
+    },
+    photoCard: {
+        position: "relative",
+    },
+    removePhotoButton: {
+        position: "absolute",
+        top: -8,
+        right: -8,
+        backgroundColor: colors.surface,
+        borderRadius: 999,
+    },
+    photoIndexText: {
+        marginTop: 6,
+        textAlign: "center",
+        fontFamily: "Roboto_400Regular",
+        fontSize: 12,
+        color: "#757575",
     },
     text0: {
         textAlign: "left",

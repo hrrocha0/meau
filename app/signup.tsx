@@ -5,7 +5,6 @@ import { SplashScreen, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -25,8 +24,7 @@ import { colors } from "../constants";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../firebaseConfig";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { pickImageFromCamera, pickImageFromGallery } from "../utils/imagePicker";
-import { uploadImageAsync } from "../utils/uploadImage";
+import { chooseProfilePhoto, type ProfilePhoto } from "../utils/profileImage";
 
 const ESTADOS_BR = [
   "Acre",
@@ -104,7 +102,7 @@ export default function SignUp() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<ProfilePhoto | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStateModalOpen, setIsStateModalOpen] = useState(false);
   const [touched, setTouched] = useState<Record<FieldName, boolean>>({
@@ -209,32 +207,12 @@ export default function SignUp() {
     return messages[field];
   }
 
-  function chooseProfileImage() {
-    console.log("clicou na foto de perfil");
-    Alert.alert("Foto de perfil", "Escolha uma opção", [
-      {
-        text: "Câmera",
-        onPress: async () => {
-          const uri = await pickImageFromCamera();
-          if (uri) {
-            setProfileImageUri(uri);
-          }
-        },
-      },
-      {
-        text: "Galeria",
-        onPress: async () => {
-          const uri = await pickImageFromGallery();
-          if (uri) {
-            setProfileImageUri(uri);
-          }
-        },
-      },
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
-    ]);
+  async function handleChooseProfileImage() {
+    const nextPhoto = await chooseProfilePhoto();
+
+    if (nextPhoto) {
+      setProfilePhoto(nextPhoto);
+    }
   }
 
   async function registerUser() {
@@ -264,15 +242,6 @@ export default function SignUp() {
         password,
       );
 
-      let profileImageUrl = "";
-
-      if (profileImageUri) {
-        profileImageUrl = await uploadImageAsync(
-          profileImageUri,
-          `users/${userCredential.user.uid}/profile.jpg`
-        );
-      }
-
       await setDoc(doc(db, "users", userCredential.user.uid), {
         name: name.trim(),
         age: Number(age),
@@ -282,7 +251,14 @@ export default function SignUp() {
         address: address.trim(),
         telephone: telephone.trim(),
         username: username.trim(),
-        profileImageUrl,
+        profilePhoto: profilePhoto
+          ? {
+              base64: profilePhoto.base64,
+              mimeType: profilePhoto.mimeType,
+              width: profilePhoto.width,
+              height: profilePhoto.height,
+            }
+          : null,
         createdAt: serverTimestamp(),
       });
 
@@ -467,18 +443,16 @@ export default function SignUp() {
                 <Text style={styles.text2}>FOTO DE PERFIL</Text>
               </View>
               <View style={{ alignItems: "center", marginTop: 32 }}>
-                <TouchableOpacity onPress={chooseProfileImage}>
-                  {profileImageUri ? (
-  <TouchableOpacity onPress={chooseProfileImage}>
-    <Image
-      source={{ uri: profileImageUri }}
-      style={styles.profileImagePreview}
-    />
-  </TouchableOpacity>
-) : (
-  <ImageButton onPress={chooseProfileImage} />
-)}
-                </TouchableOpacity>
+                {profilePhoto ? (
+                  <TouchableOpacity onPress={handleChooseProfileImage}>
+                    <Image
+                      source={{ uri: profilePhoto.previewUri }}
+                      style={styles.profileImagePreview}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <ImageButton onPress={handleChooseProfileImage} />
+                )}
               </View>
               <View
                 style={{

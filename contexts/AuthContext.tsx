@@ -9,6 +9,13 @@ import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig";
 
+type UserProfilePhoto = {
+  base64?: string;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+} | null;
+
 type UserProfile = {
   name: string;
   age: number;
@@ -18,6 +25,7 @@ type UserProfile = {
   address: string;
   telephone: string;
   username: string;
+  profilePhoto?: UserProfilePhoto;
 };
 
 type AuthContextValue = {

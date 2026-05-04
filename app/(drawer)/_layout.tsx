@@ -21,6 +21,12 @@ export default function DrawerLayout() {
                     drawerItemStyle: { display: "none" },
                 }}
             />
+            <Drawer.Screen
+                name="adotar"
+                options={{
+                    drawerItemStyle: { display: "none" },
+                }}
+            />
         </Drawer>
     );
 }

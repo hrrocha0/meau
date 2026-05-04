@@ -69,7 +69,7 @@ export default function Index() {
                             </Text>
                         </View>
                         <View style={{ marginTop: 48, gap: 12 }}>
-                            <AppButton text="ADOTAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.push("/error") }} />
+                            <AppButton text="ADOTAR" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.push("/(drawer)/adotar") }} />
                             <AppButton text="CADASTRAR ANIMAL" backgroundColor={colors.primary} textColor={colors.onPrimary} onPress={() => { router.push("/register-animal") }} />
                         </View>
                         <View style={{ marginTop: 68, marginBottom: 32 }}>

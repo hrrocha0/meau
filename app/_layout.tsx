@@ -27,11 +27,13 @@ function AuthGate() {
             ? UNAUTH_ONLY_ROUTES.has(firstSegment)
             : false;
         const isHomeRoute = firstSegment === "(drawer)" && segments.length === 1;
+        const isAdoptionRoute = firstSegment === "(drawer)" && secondSegment === "adotar";
+        const isAnimalDetailsRoute = firstSegment === "animal" && segments.length === 2;
         const isAnimalRegisterRoute =
             (firstSegment === "(drawer)" && secondSegment === "register-animal") ||
             (firstSegment === "pets" && secondSegment === "register");
         const isProtectedRoute =
-            !isGuestAllowedRoute && !isHomeRoute && !isAnimalRegisterRoute;
+            !isGuestAllowedRoute && !isHomeRoute && !isAdoptionRoute && !isAnimalDetailsRoute && !isAnimalRegisterRoute;
 
         if (!user && isProtectedRoute) {
             router.replace("/(drawer)");

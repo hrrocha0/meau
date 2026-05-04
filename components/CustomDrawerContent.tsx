@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
+import { decodeBase64Image } from "../utils/petImages";
 
 export default function CustomDrawerContent(
   props: DrawerContentComponentProps,
@@ -48,6 +49,12 @@ export default function CustomDrawerContent(
 
   const profileName =
     profile?.username ?? profile?.name ?? user?.email?.split("@")[0] ?? "Visitante";
+  const profilePhotoUri = profile?.profilePhoto?.base64
+    ? decodeBase64Image(
+        profile.profilePhoto.base64,
+        profile.profilePhoto.mimeType ?? "image/jpeg"
+      )
+    : null;
 
   return (
     <DrawerContentScrollView
@@ -59,11 +66,9 @@ export default function CustomDrawerContent(
     >
       <View style={styles.content}>
         <View style={styles.header}>
-          {isLoggedIn ? (
+          {isLoggedIn && profilePhotoUri ? (
             <Image
-              source={{
-                uri: "https://i.pravatar.cc/150?img=32",
-              }}
+              source={{ uri: profilePhotoUri }}
               style={styles.avatar}
             />
           ) : (
@@ -116,7 +121,7 @@ export default function CustomDrawerContent(
               onPress={() => goTo("/login")}
             />
           )}
-          <MenuItem label="Adotar um pet" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Adotar um pet" onPress={() => goTo("/adotar")} />
           <MenuItem label="Ajudar um pet" onPress={() => goTo("/(drawer)")} />
           <MenuItem label="Apadrinhar um pet" onPress={() => goTo("/(drawer)")} />
         </DropdownSection>
