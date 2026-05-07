@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { DrawerActions } from "@react-navigation/native";
+import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { router, useNavigation } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
@@ -46,6 +46,7 @@ type AnimalDocument = {
   porte?: string;
   fotoUrl?: string;
   fotos?: AnimalPhotoDocument[];
+  oculto?: boolean;
 };
 
 type UserProfileDocument = {
@@ -71,10 +72,7 @@ export default function AdotarScreen() {
     return Math.min(availableWidth, CARD_MAX_WIDTH);
   }, [width]);
 
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadPets() {
+  const loadPets = useCallback(async (isActive: () => boolean) => {
       try {
         setIsLoading(true);
 
@@ -94,7 +92,9 @@ export default function AdotarScreen() {
         );
 
         const ownersById = new Map(ownerEntries);
-        const nextPets = animals.map((animal) => {
+        const nextPets = animals
+          .filter((animal) => animal.oculto !== true)
+          .map((animal) => {
           const ownerProfile = animal.usuarioId ? ownersById.get(animal.usuarioId) : null;
           const city = ownerProfile?.city?.trim();
           const state = ownerProfile?.state?.trim();
@@ -126,27 +126,32 @@ export default function AdotarScreen() {
           };
         });
 
-        if (isActive) {
+        if (isActive()) {
           setPets(nextPets);
         }
       } catch (error) {
         console.error("Erro ao carregar animais para adoção:", error);
-        if (isActive) {
+        if (isActive()) {
           setPets([]);
         }
       } finally {
-        if (isActive) {
+        if (isActive()) {
           setIsLoading(false);
         }
       }
-    }
-
-    void loadPets();
-
-    return () => {
-      isActive = false;
-    };
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      void loadPets(() => isActive);
+
+      return () => {
+        isActive = false;
+      };
+    }, [loadPets]),
+  );
 
   const handleOpenDrawer = useCallback(() => {
     navigation.dispatch(DrawerActions.openDrawer());

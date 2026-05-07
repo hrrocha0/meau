@@ -188,6 +188,7 @@ export default function Register() {
                 usuarioId: currentUser.uid,
                 nome: animalName.trim(),
                 finalidade: "adocao",
+                oculto: false,
                 especie: species,
                 sexo: sex,
                 porte: size,

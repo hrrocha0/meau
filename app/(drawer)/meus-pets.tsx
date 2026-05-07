@@ -166,11 +166,41 @@ export default function MeusPetsScreen() {
         router.push(`/animal/${pet.id}` as any);
     }, []);
 
+    const handleToggleHidden = useCallback(async (pet: Pet) => {
+        const nextOculto = !(pet.oculto ?? false);
+
+        setPets((currentPets) =>
+            currentPets.map((currentPet) =>
+                currentPet.id === pet.id
+                    ? { ...currentPet, oculto: nextOculto }
+                    : currentPet
+            )
+        );
+
+        try {
+            await updateDoc(doc(db, "animals", pet.id), { oculto: nextOculto });
+        } catch (error) {
+            console.error("Erro ao atualizar visibilidade do animal:", error);
+            setPets((currentPets) =>
+                currentPets.map((currentPet) =>
+                    currentPet.id === pet.id
+                        ? { ...currentPet, oculto: pet.oculto ?? false }
+                        : currentPet
+                )
+            );
+        }
+    }, []);
+
     const renderItem = useCallback(
         ({ item }: ListRenderItemInfo<Pet>) => (
-            <PetCard pet={item} width={cardWidth} onPress={handleOpenPet} />
+            <PetCard
+                pet={item}
+                width={cardWidth}
+                onPress={handleOpenPet}
+                onToggleHidden={handleToggleHidden}
+            />
         ),
-        [cardWidth, handleOpenPet],
+        [cardWidth, handleOpenPet, handleToggleHidden],
     );
 
     const keyExtractor = useCallback((item: Pet) => item.id, []);
@@ -240,9 +270,10 @@ type PetCardProps = {
     pet: Pet;
     width: number;
     onPress: (pet: Pet) => void;
+    onToggleHidden: (pet: Pet) => Promise<void>;
 };
 
-const PetCard = memo(function PetCard({ pet, width, onPress }: PetCardProps) {
+const PetCard = memo(function PetCard({ pet, width, onPress, onToggleHidden }: PetCardProps) {
     const imageListRef = useRef<FlatList<string>>(null);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const imageUris = pet.imagemUris.length > 0
@@ -292,10 +323,10 @@ const PetCard = memo(function PetCard({ pet, width, onPress }: PetCardProps) {
                 </Pressable>
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Ocultar ${pet.nome}`}
+                    accessibilityLabel={`${pet.oculto ? "Exibir" : "Ocultar"} ${pet.nome}`}
                     hitSlop={8}
-                    onPress={async () => {
-                        await updateDoc(doc(db, "animals", pet.id), { oculto: !pet.oculto })
+                    onPress={() => {
+                        void onToggleHidden(pet);
                     }}
                     style={styles.favoriteButton}
                 >
