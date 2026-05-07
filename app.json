@@ -12,19 +12,26 @@
       "backgroundColor": "#ffffff"
     },
     "android": {
+      "package": "com.appunb.meau",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "predictiveBackGestureEnabled": false
     },
-    "scheme": "your-app-scheme",
+    "scheme": "meau",
     "experiments": {
       "typedRoutes": true
     },
     "plugins": [
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8e911f23-3855-41d8-92df-39d344575a3c"
+      }
+    }
   }
 }
