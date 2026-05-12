@@ -1,6 +1,13 @@
 # Meau - Desenvolvimento de Aplicativos (2026.1)
 
-Henrique Rodrigues Rocha - 211036061
+**Código da Disciplina**: CIC0226
+
+## Alunos
+| Matrícula | Aluno                         | Curso                       | GitHub                                                   |
+| --------- | ----------------------------- | --------------------------- | -------------------------------------------------------- |
+| 232026414 | Gustavo Mourão Mena Barreto   | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@hrrocha0](https://github.com/hrrocha0)                 |
+| 211036061 | Henrique Rodrigues Rocha      | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@GustavommBarreto](https://github.com/GustavommBarreto) |
+| 180138596 | Tomás Veloso Peixoto Matutino | ENGENHARIA DE SOFTWARE/FCTE | [@tomasvelos0](https://github.com/tomasvelos0)           |
 
 ## Sobre
 

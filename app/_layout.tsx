@@ -5,8 +5,8 @@ import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 
-const GUEST_ALLOWED_ROUTES = new Set(["login", "signup", "error"]);
-const UNAUTH_ONLY_ROUTES = new Set(["login", "signup"]);
+const GUEST_ALLOWED_ROUTES = new Set(["login", "error"]);
+const UNAUTH_ONLY_ROUTES = new Set(["login"]);
 
 function AuthGate() {
     const router = useRouter();
@@ -26,6 +26,8 @@ function AuthGate() {
         const isUnauthOnlyRoute = firstSegment
             ? UNAUTH_ONLY_ROUTES.has(firstSegment)
             : false;
+        const isDrawerSignUpRoute =
+            firstSegment === "(drawer)" && secondSegment === "signup";
         const isHomeRoute = firstSegment === "(drawer)" && segments.length === 1;
         const isAdoptionRoute = firstSegment === "(drawer)" && secondSegment === "adotar";
         const isAnimalDetailsRoute = firstSegment === "animal" && segments.length === 2;
@@ -33,14 +35,19 @@ function AuthGate() {
             (firstSegment === "(drawer)" && secondSegment === "register-animal") ||
             (firstSegment === "pets" && secondSegment === "register");
         const isProtectedRoute =
-            !isGuestAllowedRoute && !isHomeRoute && !isAdoptionRoute && !isAnimalDetailsRoute && !isAnimalRegisterRoute;
+            !isGuestAllowedRoute &&
+            !isDrawerSignUpRoute &&
+            !isHomeRoute &&
+            !isAdoptionRoute &&
+            !isAnimalDetailsRoute &&
+            !isAnimalRegisterRoute;
 
         if (!user && isProtectedRoute) {
             router.replace("/(drawer)");
             return;
         }
 
-        if (user && isUnauthOnlyRoute) {
+        if (user && (isUnauthOnlyRoute || isDrawerSignUpRoute)) {
             router.replace("/(drawer)");
         }
     }, [isAuthResolved, router, segments, user]);

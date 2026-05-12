@@ -2,7 +2,16 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import DrawerMenuContent from '../components/DrawerMenuContent';
 import { auth } from '../firebaseConfig';
 
 const CORES = {
@@ -19,6 +28,7 @@ export default function Login() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const fazerLogin = async () => {
         if (email === '' || senha === '') {
@@ -41,10 +51,27 @@ export default function Login() {
 
     return (
         <View style={styles.container}>
+            <Modal
+                visible={isMenuOpen}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setIsMenuOpen(false)}
+            >
+                <Pressable style={styles.overlay} onPress={() => setIsMenuOpen(false)}>
+                    <Pressable style={styles.drawer} onPress={() => { }}>
+                        <DrawerMenuContent onClose={() => setIsMenuOpen(false)} />
+                    </Pressable>
+                </Pressable>
+            </Modal>
+
             <View style={styles.header}>
-                <Ionicons name="menu" size={24} color={CORES.cinzaTexto} />
+                <TouchableOpacity onPress={() => setIsMenuOpen(true)} accessibilityLabel="Abrir menu">
+                    <Ionicons name="menu" size={24} color={CORES.cinzaTexto} />
+                </TouchableOpacity>
                 <Text style={styles.headerTitle}>Login</Text>
-                <View style={{ width: 24 }} />
+                <TouchableOpacity onPress={() => router.push('/(drawer)')} accessibilityLabel="Voltar para home">
+                    <Ionicons name="arrow-back" size={24} color={CORES.cinzaTexto} />
+                </TouchableOpacity>
             </View>
 
             <View style={styles.content}>
@@ -88,6 +115,20 @@ export default function Login() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: CORES.fundo },
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.35)',
+        flexDirection: 'row',
+    },
+    drawer: {
+        width: '78%',
+        maxWidth: 320,
+        backgroundColor: '#F7F7F7',
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
+    },
     header: {
         height: 80,
         backgroundColor: CORES.verdeHeader,

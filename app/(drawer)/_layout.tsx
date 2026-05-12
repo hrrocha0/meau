@@ -27,6 +27,12 @@ export default function DrawerLayout() {
                     drawerItemStyle: { display: "none" },
                 }}
             />
+            <Drawer.Screen
+                name="signup"
+                options={{
+                    drawerItemStyle: { display: "none" },
+                }}
+            />
         </Drawer>
     );
 }

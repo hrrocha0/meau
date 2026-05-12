@@ -1,7 +1,10 @@
 import { Roboto_400Regular, Roboto_500Medium } from "@expo-google-fonts/roboto";
 import { Ionicons } from "@expo/vector-icons";
+import { DrawerActions } from "@react-navigation/native";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useFonts } from "expo-font";
-import { SplashScreen, useRouter } from "expo-router";
+import { SplashScreen, useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
@@ -15,16 +18,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppButton } from "../components/appButton";
-import { Card } from "../components/card";
-import { DrawerButton } from "../components/drawerButton";
-import { ImageButton } from "../components/imageButton";
-import { InputField } from "../components/inputField";
-import { colors } from "../constants";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../firebaseConfig";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { chooseProfilePhoto, type ProfilePhoto } from "../utils/profileImage";
+import { AppButton } from "../../components/appButton";
+import { Card } from "../../components/card";
+import { DrawerButton } from "../../components/drawerButton";
+import { ImageButton } from "../../components/imageButton";
+import { InputField } from "../../components/inputField";
+import { colors } from "../../constants";
+import { auth, db } from "../../firebaseConfig";
+import { chooseProfilePhoto, type ProfilePhoto } from "../../utils/profileImage";
 
 const ESTADOS_BR = [
   "Acre",
@@ -89,8 +90,9 @@ function formatTelephone(value: string) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
 }
 
-export default function SignUp() {
+export default function SignUpScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
 
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
@@ -230,11 +232,6 @@ export default function SignUp() {
 
     try {
       setIsSubmitting(true);
-      console.log("Iniciando cadastro", {
-        projectId: "meau-hrrocha",
-        email: email.trim().toLowerCase(),
-        username: username.trim(),
-      });
 
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -260,11 +257,6 @@ export default function SignUp() {
             }
           : null,
         createdAt: serverTimestamp(),
-      });
-
-      console.log("Perfil salvo no Firestore", {
-        collection: "users",
-        uid: userCredential.user.uid,
       });
 
       alert(`Usuário ${username} cadastrado com sucesso!`);
@@ -294,13 +286,27 @@ export default function SignUp() {
       <StatusBar style="dark" />
       <View style={styles.header}>
         <SafeAreaView edges={["top"]}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{ margin: 16 }}>
-              <DrawerButton color={colors.onSecondaryContainer} />
+          <View style={styles.headerRow}>
+            <View style={styles.headerMenuButton}>
+              <DrawerButton
+                color={colors.onSecondaryContainer}
+                onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+              />
             </View>
-            <View style={{ margin: 16 }}>
+            <View style={styles.headerTitleContainer}>
               <Text style={styles.text0}>Cadastro Pessoal</Text>
             </View>
+            <TouchableOpacity
+              style={styles.headerBackButton}
+              onPress={() => router.push("/(drawer)")}
+              accessibilityLabel="Voltar para home"
+            >
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={colors.onSecondaryContainer}
+              />
+            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
@@ -454,13 +460,7 @@ export default function SignUp() {
                   <ImageButton onPress={handleChooseProfileImage} />
                 )}
               </View>
-              <View
-                style={{
-                  alignItems: "center",
-                  marginTop: 32,
-                  marginBottom: 24,
-                }}
-              >
+              <View style={styles.submitContainer}>
                 <AppButton
                   text={isSubmitting ? "FAZENDO CADASTRO..." : "FAZER CADASTRO"}
                   backgroundColor={colors.secondary}
@@ -502,11 +502,7 @@ export default function SignUp() {
                 >
                   <Text style={styles.stateOptionText}>{stateOption}</Text>
                   {state === stateOption ? (
-                    <Ionicons
-                      name="checkmark"
-                      size={18}
-                      color="#589b9b"
-                    />
+                    <Ionicons name="checkmark" size={18} color="#589b9b" />
                   ) : null}
                 </Pressable>
               ))}
@@ -525,6 +521,20 @@ const styles = StyleSheet.create({
   header: {
     elevation: 4,
     backgroundColor: colors.secondaryContainer,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerMenuButton: {
+    margin: 16,
+  },
+  headerTitleContainer: {
+    marginVertical: 16,
+    flex: 1,
+  },
+  headerBackButton: {
+    marginHorizontal: 16,
   },
   body: {
     flex: 1,
@@ -552,6 +562,11 @@ const styles = StyleSheet.create({
     height: 128,
     borderRadius: 64,
     resizeMode: "cover",
+  },
+  submitContainer: {
+    alignItems: "center",
+    marginTop: 32,
+    marginBottom: 24,
   },
   modalBackdrop: {
     flex: 1,
