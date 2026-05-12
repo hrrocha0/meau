@@ -3,12 +3,14 @@
 **Código da Disciplina**: CIC0226
 
 ## Alunos
-| Matrícula | Aluno                         | Curso                       | GitHub                                                   |
-| --------- | ----------------------------- | --------------------------- | -------------------------------------------------------- |
-| 232026414 | Gustavo Mourão Mena Barreto   | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@hrrocha0](https://github.com/hrrocha0)                 |
-| 211036061 | Henrique Rodrigues Rocha      | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@GustavommBarreto](https://github.com/GustavommBarreto) |
-| 180138596 | Tomás Veloso Peixoto Matutino | ENGENHARIA DE SOFTWARE/FCTE | [@tomasvelos0](https://github.com/tomasvelos0)           |
+| Matrícula |                                                                                                                              | Aluno                         | Curso                       | GitHub                                                   |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------- | -------------------------------------------------------- |
+| 232026414 | <img src="https://github.com/hrrocha0.png?size=32" width="32" style="border-radius: 50%;" alt="@hrrocha0" />                 | Gustavo Mourão Mena Barreto   | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@hrrocha0](https://github.com/hrrocha0)                 |
+| 211036061 | <img src="https://github.com/GustavommBarreto.png?size=32" width="32" style="border-radius: 50%;" alt="@GustavommBarreto" /> | Henrique Rodrigues Rocha      | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@GustavommBarreto](https://github.com/GustavommBarreto) |
+| 180138596 | <img src="https://github.com/tomasvelos0.png?size=32" width="32"  style="border-radius: 50%;" alt="@tomasvelos0" />          | Tomás Veloso Peixoto Matutino | ENGENHARIA DE SOFTWARE/FCTE | [@tomasvelos0](https://github.com/tomasvelos0)           |
 
+
+https://avatars.githubusercontent.com/u/99548553?s=64&v=4
 ## Sobre
 
 Aplicativo [Expo](https://docs.expo.dev/) sendo implementado para a disciplina de Desenvolvimento de Aplicativos. Atualmente, possui as seguintes funcionalidades:
