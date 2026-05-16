@@ -19,12 +19,22 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { doc, getDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../contexts/AuthContext";
 import { db } from "../../firebaseConfig";
 import { decodeBase64Image } from "../../utils/petImages";
 
 type PetDetail = {
   id: string;
+  ownerId: string;
   nome: string;
   especie: string;
   sexo: string;
@@ -82,12 +92,14 @@ function hasHealthFlag(items: string[] | undefined, terms: string[]) {
 
 export default function PetDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const { user, profile } = useAuth();
   const imageListRef = useRef<FlatList<ImageSourcePropType>>(null);
   const [pet, setPet] = useState<PetDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [hasAdoptionRequest, setHasAdoptionRequest] = useState(false);
   const { width } = useWindowDimensions();
 
   const contentWidth = useMemo(
@@ -159,6 +171,7 @@ export default function PetDetailScreen() {
         if (isActive) {
           const nextPet = {
             id: animalSnapshot.id,
+            ownerId: animalData.usuarioId?.trim() || "",
             nome: animalData.nome?.trim() || "Sem nome",
             especie: animalData.especie?.trim() || "Não informada",
             sexo: animalData.sexo?.trim() || "Não informado",
@@ -193,7 +206,7 @@ export default function PetDetailScreen() {
 
           setPet(nextPet);
           setCurrentImageIndex(0);
-          setIsFavorite(!!nextPet.favorito);
+          setIsFavorite(false);
         }
       } catch (error) {
         console.error("Erro ao carregar detalhes do pet:", error);
@@ -213,6 +226,34 @@ export default function PetDetailScreen() {
       isActive = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!pet?.id || !user?.uid || pet.ownerId === user.uid) {
+      setHasAdoptionRequest(false);
+      setIsFavorite(false);
+      return;
+    }
+
+    const conversationId = `${pet.id}_${user.uid}`;
+    const unsubscribe = onSnapshot(
+      doc(db, "conversa", conversationId),
+      (snapshot) => {
+        const conversation = snapshot.exists()
+          ? (snapshot.data() as { adoptionRequestActive?: boolean })
+          : null;
+        const isActive = conversation?.adoptionRequestActive ?? false;
+        setHasAdoptionRequest(isActive);
+        setIsFavorite(isActive);
+      },
+      (error) => {
+        console.error("Erro ao carregar intenção de adoção:", error);
+        setHasAdoptionRequest(false);
+        setIsFavorite(false);
+      },
+    );
+
+    return unsubscribe;
+  }, [pet?.id, pet?.ownerId, user?.uid]);
 
   const handleGoBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -236,10 +277,6 @@ export default function PetDetailScreen() {
       Alert.alert("Erro", "Não foi possível compartilhar este pet agora.");
     }
   }, [pet]);
-
-  const handleToggleFavorite = useCallback(() => {
-    setIsFavorite((prev) => !prev);
-  }, []);
 
   const handleImageScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -272,16 +309,86 @@ export default function PetDetailScreen() {
     [currentImageIndex, pet],
   );
 
-  const handleAdopt = useCallback(() => {
-    if (!pet) {
+  const handleAdopt = useCallback(async () => {
+    if (!pet || !pet.ownerId) {
       return;
     }
 
-    Alert.alert(
-      "Pretendo adotar",
-      `O pedido de adoção do ${pet.nome} será iniciado.`,
-    );
-  }, [pet]);
+    if (!user?.uid) {
+      Alert.alert("Login necessário", "Faça login para demonstrar interesse em adotar.");
+      return;
+    }
+
+    if (pet.ownerId === user.uid) {
+      return;
+    }
+
+    const interestedUserName = profile?.username?.trim()
+      || profile?.name?.trim()
+      || user.email?.split("@")[0]
+      || "Alguém";
+    const conversationId = `${pet.id}_${user.uid}`;
+    const conversationRef = doc(db, "conversa", conversationId);
+
+    try {
+      if (hasAdoptionRequest) {
+        const cancelMessage = `${interestedUserName} desistiu da adoção de ${pet.nome}.`;
+
+        await addDoc(collection(db, "conversa", conversationId, "mensagens"), {
+          senderId: user.uid,
+          text: cancelMessage,
+          createdAt: serverTimestamp(),
+        });
+
+        await updateDoc(conversationRef, {
+          adoptionRequestActive: false,
+          lastMessage: cancelMessage,
+          lastMessageAt: serverTimestamp(),
+          lastMessageSenderId: user.uid,
+          interestedLastReadAt: serverTimestamp(),
+        });
+
+        return;
+      }
+
+      const firstMessage = `${interestedUserName} pretende adotar ${pet.nome}.`;
+      const conversationSnapshot = await getDoc(conversationRef);
+      const currentConversation = conversationSnapshot.exists()
+        ? (conversationSnapshot.data() as { visibleToInterested?: boolean })
+        : null;
+
+      await setDoc(conversationRef, {
+        animalId: pet.id,
+        proprietarioId: pet.ownerId,
+        interessadoUserId: user.uid,
+        lastMessage: firstMessage,
+        lastMessageAt: serverTimestamp(),
+        lastMessageSenderId: user.uid,
+        interestedLastReadAt: serverTimestamp(),
+        visibleToInterested: currentConversation?.visibleToInterested ?? false,
+        adoptionRequestActive: true,
+        ...(currentConversation ? {} : { ownerLastReadAt: null }),
+      }, { merge: true });
+
+      await addDoc(collection(db, "conversa", conversationId, "mensagens"), {
+        senderId: user.uid,
+        text: firstMessage,
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error("Erro ao registrar intenção de adoção:", error);
+      Alert.alert("Erro", "Não foi possível atualizar a intenção de adoção agora.");
+    }
+  }, [hasAdoptionRequest, pet, profile?.name, profile?.username, user?.email, user?.uid]);
+
+  const handleToggleFavorite = useCallback(() => {
+    void handleAdopt();
+  }, [handleAdopt]);
+
+  const isOwnPet = pet?.ownerId === user?.uid;
+  const adoptionButtonLabel = hasAdoptionRequest
+    ? "DESISTO DA ADOÇÃO"
+    : "PRETENDO ADOTAR";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -412,22 +519,24 @@ export default function PetDetailScreen() {
                   </>
                 ) : null}
 
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    isFavorite
-                      ? "Remover dos favoritos"
-                      : "Adicionar aos favoritos"
-                  }
-                  onPress={handleToggleFavorite}
-                  style={styles.favoriteFab}
-                >
-                  <MaterialIcons
-                    name={isFavorite ? "favorite" : "favorite-border"}
-                    size={24}
-                    color="#434343"
-                  />
-                </Pressable>
+                {!isOwnPet ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      hasAdoptionRequest
+                        ? `Desistir da adoção de ${pet.nome}`
+                        : `Pretendo adotar ${pet.nome}`
+                    }
+                    onPress={handleToggleFavorite}
+                    style={styles.favoriteFab}
+                  >
+                    <MaterialIcons
+                      name={isFavorite ? "favorite" : "favorite-border"}
+                      size={24}
+                      color="#434343"
+                    />
+                  </Pressable>
+                ) : null}
               </View>
 
               <View style={styles.infoContainer}>
@@ -485,11 +594,24 @@ export default function PetDetailScreen() {
                 <View style={styles.ctaWrapper}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Pretendo adotar ${pet.nome}`}
-                    onPress={handleAdopt}
-                    style={styles.ctaButton}
+                    accessibilityLabel={adoptionButtonLabel}
+                    disabled={isOwnPet}
+                    onPress={() => {
+                      void handleAdopt();
+                    }}
+                    style={[
+                      styles.ctaButton,
+                      isOwnPet ? styles.ctaButtonDisabled : null,
+                    ]}
                   >
-                    <Text style={styles.ctaButtonText}>PRETENDO ADOTAR</Text>
+                    <Text
+                      style={[
+                        styles.ctaButtonText,
+                        isOwnPet ? styles.ctaButtonTextDisabled : null,
+                      ]}
+                    >
+                      {adoptionButtonLabel}
+                    </Text>
                   </Pressable>
                 </View>
               </View>
@@ -746,11 +868,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  ctaButtonDisabled: {
+    backgroundColor: "#E0E0E0",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   ctaButtonText: {
     fontFamily: "Roboto_500Medium",
     fontSize: 12,
     color: "#434343",
     fontWeight: "500",
-
+  },
+  ctaButtonTextDisabled: {
+    color: "#8A8A8A",
   },
 });

@@ -1,5 +1,5 @@
 import { Roboto_400Regular, Roboto_500Medium } from "@expo-google-fonts/roboto";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 import { SplashScreen, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
