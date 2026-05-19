@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { router, useNavigation } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { doc, getDoc, getDocs, collection, orderBy, query } from "firebase/firestore";
@@ -273,13 +273,15 @@ const PetCard = memo(function PetCard({ pet, width, onPress }: PetCardProps) {
 
   return (
     <View style={[styles.cardWrapper, { width, minHeight: CARD_TOTAL_HEIGHT }]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Abrir perfil do animal ${pet.nome}`}
-        onPress={handlePress}
-        style={styles.cardHeader}
-      >
-        <Text style={styles.cardTitle}>{pet.nome}</Text>
+      <View style={styles.cardHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir perfil do animal ${pet.nome}`}
+          onPress={handlePress}
+          style={styles.cardTitleButton}
+        >
+          <Text style={styles.cardTitle}>{pet.nome}</Text>
+        </Pressable>
 
         <Pressable
           accessibilityRole="button"
@@ -290,7 +292,7 @@ const PetCard = memo(function PetCard({ pet, width, onPress }: PetCardProps) {
         >
           <MaterialIcons name="favorite-border" size={24} color="#434343" />
         </Pressable>
-      </Pressable>
+      </View>
 
       <View style={styles.carouselWrapper}>
         <FlatList
@@ -456,13 +458,18 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     paddingRight: 4,
   },
+  cardTitleButton: {
+    flex: 1,
+    height: "100%",
+    justifyContent: "center",
+  },
   carouselWrapper: {
     position: "relative",
   },
   cardTitle: {
     fontFamily: "Roboto_500Medium",
-    flex: 1,
     fontSize: 16,
+    lineHeight: 16,
     color: "#434343",
     fontWeight: "500",
   },

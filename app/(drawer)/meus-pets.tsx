@@ -302,15 +302,17 @@ const PetCard = memo(function PetCard({ pet, width, onPress, onToggleHidden }: P
         setCurrentImageIndex(nextIndex);
     }, [currentImageIndex, imageUris.length]);
 
-    return (
-        <View style={[styles.cardWrapper, { width, minHeight: CARD_TOTAL_HEIGHT }]}>
-            <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir perfil do animal ${pet.nome}`}
-                onPress={handlePress}
-                style={styles.cardHeader}
-            >
-                <Text style={styles.cardTitle}>{pet.nome}</Text>
+        return (
+            <View style={[styles.cardWrapper, { width, minHeight: CARD_TOTAL_HEIGHT }]}>
+            <View style={styles.cardHeader}>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir perfil do animal ${pet.nome}`}
+                    onPress={handlePress}
+                    style={styles.cardTitleButton}
+                >
+                    <Text style={styles.cardTitle}>{pet.nome}</Text>
+                </Pressable>
 
                 <Pressable
                     accessibilityRole="button"
@@ -330,9 +332,9 @@ const PetCard = memo(function PetCard({ pet, width, onPress, onToggleHidden }: P
                     }}
                     style={styles.favoriteButton}
                 >
-                    <MaterialIcons name={pet.oculto ?? false ? "visibility-off" : "visibility" } size={24} color={"#434343"} />
+                    <MaterialIcons name={pet.oculto ?? false ? "visibility-off" : "visibility"} size={24} color="#434343" />
                 </Pressable>
-            </Pressable>
+            </View>
 
             <View style={styles.carouselWrapper}>
                 <FlatList
@@ -498,13 +500,18 @@ const styles = StyleSheet.create({
         paddingLeft: 12,
         paddingRight: 4,
     },
+    cardTitleButton: {
+        flex: 1,
+        height: "100%",
+        justifyContent: "center",
+    },
     carouselWrapper: {
         position: "relative",
     },
     cardTitle: {
         fontFamily: "Roboto_500Medium",
-        flex: 1,
         fontSize: 16,
+        lineHeight: 16,
         color: "#434343",
         fontWeight: "500",
     },

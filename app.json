@@ -32,6 +32,9 @@
       "eas": {
         "projectId": "8e911f23-3855-41d8-92df-39d344575a3c"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.appunb.meau"
     }
   }
 }
