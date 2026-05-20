@@ -1,6 +1,5 @@
 import { Roboto_400Regular, Roboto_500Medium } from "@expo-google-fonts/roboto";
-import { Ionicons } from "@expo/vector-icons";
-import { DrawerActions } from "@react-navigation/native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useFonts } from "expo-font";
@@ -71,6 +70,10 @@ type FieldName =
   | "passwordConfirm";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type DrawerNavigation = {
+  openDrawer: () => void;
+};
 
 function formatAge(value: string) {
   return value.replace(/\D/g, "").slice(0, 3);
@@ -290,7 +293,7 @@ export default function SignUpScreen() {
             <View style={styles.headerMenuButton}>
               <DrawerButton
                 color={colors.onSecondaryContainer}
-                onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                onPress={() => (navigation as unknown as DrawerNavigation).openDrawer()}
               />
             </View>
             <View style={styles.headerTitleContainer}>

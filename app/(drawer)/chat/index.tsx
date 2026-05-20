@@ -1,38 +1,54 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { DrawerActions, useFocusEffect } from "@react-navigation/native";
-import { router, useNavigation } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
   query,
+  serverTimestamp,
+  updateDoc,
   where,
   Timestamp,
 } from "firebase/firestore";
-import { ConversaChatListItem } from "../../../components/chat/ConversaChatListItem";
-import { useAuth } from "../../../contexts/AuthContext";
-import { db } from "../../../firebaseConfig";
-import { decodeBase64Image } from "../../../utils/petImages";
+import { ConversaChatListItem } from "@/components/chat/ConversaChatListItem";
+import { useAuth } from "@/contexts/AuthContext";
+import { db } from "@/firebaseConfig";
+import { decodeBase64Image } from "@/utils/petImages";
 import {
   ChatConversationDocument,
   ConversaChat,
   UserProfileChatDocument,
-} from "../../../types/chat";
+} from "@/types/chat";
 
 const TOP_BAR_HEIGHT = 24;
 const HEADER_HEIGHT = 56;
+
+type ChatTab = "owner" | "interested" | "finished";
+
+const CHAT_TABS: Array<{ key: ChatTab; label: string }> = [
+  { key: "owner", label: "Meus pets" },
+  { key: "interested", label: "Quero adotar" },
+  { key: "finished", label: "Finalizados" },
+];
+
+type DrawerNavigation = {
+  openDrawer: () => void;
+};
 
 type AnimalDocument = {
   usuarioId?: string;
@@ -50,12 +66,49 @@ function formatLastMessageTime(value?: Timestamp | null) {
   });
 }
 
-function resolveProfileName(profile: UserProfileChatDocument | null, fallbackId: string) {
+function resolveProfileName(profile: UserProfileChatDocument | null, fallbackName: string) {
   return (
     profile?.username?.trim()
     || profile?.name?.trim()
     || profile?.email?.split("@")[0]
-    || fallbackId
+    || fallbackName
+  );
+}
+
+function resolveMessageAuthorName(message?: string) {
+  const trimmedMessage = message?.trim();
+
+  if (!trimmedMessage) {
+    return undefined;
+  }
+
+  const adoptionIntentMatch = trimmedMessage.match(/^(.+?) pretende adotar /i);
+  const adoptionCancelMatch = trimmedMessage.match(/^(.+?) desistiu da adoção /i);
+
+  return adoptionIntentMatch?.[1]?.trim() || adoptionCancelMatch?.[1]?.trim();
+}
+
+function resolveConversationFallbackName(
+  conversation: ChatConversationDocument,
+  otherUserId: string,
+) {
+  if (otherUserId === conversation.proprietarioId) {
+    return (
+      conversation.proprietarioUserName?.trim()
+      || conversation.ownerUserName?.trim()
+      || conversation.proprietarioName?.trim()
+      || conversation.ownerName?.trim()
+      || otherUserId
+    );
+  }
+
+  return (
+    conversation.interessadoUserName?.trim()
+    || conversation.interestedUserName?.trim()
+    || conversation.interessadoName?.trim()
+    || conversation.interestedName?.trim()
+    || resolveMessageAuthorName(conversation.lastMessage)
+    || otherUserId
   );
 }
 
@@ -93,6 +146,7 @@ function normalizeConversation(
     ownerLastReadAt: data.ownerLastReadAt ?? null,
     interestedLastReadAt: data.interestedLastReadAt ?? null,
     visibleToInterested: data.visibleToInterested ?? true,
+    isProcessActive: data.adoptionRequestActive !== false,
   };
 }
 
@@ -100,29 +154,168 @@ export default function ChatListScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversaChat[]>([]);
+  const [activeTab, setActiveTab] = useState<ChatTab>("owner");
+  const [isFinalizeMode, setIsFinalizeMode] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const filteredConversations = useMemo(() => (
+    conversations.filter((conversation) => {
+      if (activeTab === "finished") {
+        return conversation.isProcessActive === false;
+      }
+
+      if (conversation.isProcessActive === false) {
+        return false;
+      }
+
+      if (activeTab === "owner") {
+        return conversation.proprietarioId === user?.uid;
+      }
+
+      return conversation.interessadoUserId === user?.uid;
+    })
+  ), [activeTab, conversations, user?.uid]);
+
   const handleOpenDrawer = useCallback(() => {
-    navigation.dispatch(DrawerActions.openDrawer());
+    (navigation as unknown as DrawerNavigation).openDrawer();
   }, [navigation]);
 
   const handleSearch = useCallback(() => {
     console.log("Abrir busca de conversas");
   }, []);
 
+  const handleChangeTab = useCallback((tab: ChatTab) => {
+    setActiveTab(tab);
+    setSelectedConversationId(null);
+  }, []);
+
   const handleOpenConversation = useCallback(
     (conversation: ConversaChat) => {
+      if (isFinalizeMode) {
+        if (conversation.isProcessActive === false) {
+          return;
+        }
+
+        setSelectedConversationId(conversation.id);
+        return;
+      }
+
       router.push({
         pathname: "/chat/[conversaId]",
         params: { conversaId: conversation.id },
       });
     },
-    [],
+    [isFinalizeMode],
   );
 
   const handleFinalizeProcess = useCallback(() => {
-    console.log("Finalizar processo");
-  }, []);
+    if (isFinalizeMode) {
+      setIsFinalizeMode(false);
+      setSelectedConversationId(null);
+      return;
+    }
+
+    setActiveTab((currentTab) => currentTab === "finished" ? "owner" : currentTab);
+    setIsFinalizeMode(true);
+    setSelectedConversationId(null);
+  }, [isFinalizeMode]);
+
+  const finalizeSelectedConversation = useCallback(async (selectedConversation: ConversaChat) => {
+    if (!user?.uid || isFinalizing) {
+      return;
+    }
+
+    const finalMessage = `Processo de adoção de ${selectedConversation.petName} finalizado.`;
+
+    try {
+      setIsFinalizing(true);
+
+      await addDoc(collection(db, "conversa", selectedConversation.id, "mensagens"), {
+        senderId: user.uid,
+        text: finalMessage,
+        createdAt: serverTimestamp(),
+      });
+
+      await updateDoc(doc(db, "conversa", selectedConversation.id), {
+        adoptionRequestActive: false,
+        finalizedAt: serverTimestamp(),
+        finalizedBy: user.uid,
+        lastMessage: finalMessage,
+        lastMessageAt: serverTimestamp(),
+        lastMessageSenderId: user.uid,
+        visibleToInterested: true,
+      });
+
+      setConversations((currentConversations) => (
+        currentConversations.map((conversation) => (
+          conversation.id === selectedConversation.id
+            ? {
+                ...conversation,
+                isProcessActive: false,
+                lastMessage: finalMessage,
+                lastMessageTime: new Date().toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                lastMessageSenderId: user.uid,
+                hasUnread: false,
+              }
+            : conversation
+        ))
+      ));
+      setActiveTab("finished");
+      setIsFinalizeMode(false);
+      setSelectedConversationId(null);
+    } catch (error) {
+      console.error("Erro ao finalizar processo:", error);
+      Alert.alert("Erro", "Não foi possível finalizar o processo agora.");
+    } finally {
+      setIsFinalizing(false);
+    }
+  }, [isFinalizing, user?.uid]);
+
+  const handleConfirmFinalize = useCallback(() => {
+    if (!selectedConversationId || isFinalizing) {
+      return;
+    }
+
+    const selectedConversation = conversations.find(
+      (conversation) => conversation.id === selectedConversationId,
+    );
+
+    if (!selectedConversation) {
+      return;
+    }
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        `Finalizar o processo de adoção de ${selectedConversation.petName}?`,
+      );
+
+      if (confirmed) {
+        void finalizeSelectedConversation(selectedConversation);
+      }
+
+      return;
+    }
+
+    Alert.alert(
+      "Finalizar processo",
+      `Finalizar o processo de adoção de ${selectedConversation.petName}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Finalizar",
+          style: "destructive",
+          onPress: () => {
+            void finalizeSelectedConversation(selectedConversation);
+          },
+        },
+      ],
+    );
+  }, [conversations, finalizeSelectedConversation, isFinalizing, selectedConversationId]);
 
   const loadConversations = useCallback(
     async (isActive: () => boolean) => {
@@ -214,6 +407,7 @@ export default function ChatListScreen() {
             : conversation.proprietarioId;
           const pet = animalsById.get(conversation.animalId);
           const otherUserProfile = usersById.get(otherUserId) ?? null;
+          const fallbackName = resolveConversationFallbackName(conversation, otherUserId);
           const lastReadAt = conversation.proprietarioId === user.uid
             ? conversation.ownerLastReadAt
             : conversation.interestedLastReadAt;
@@ -226,12 +420,13 @@ export default function ChatListScreen() {
             proprietarioId: conversation.proprietarioId,
             interessadoUserId: conversation.interessadoUserId,
             otherUserId,
-            otherUserName: resolveProfileName(otherUserProfile, otherUserId),
+            otherUserName: resolveProfileName(otherUserProfile, fallbackName),
             petName: pet?.nome?.trim() || "Animal",
             lastMessage: conversation.lastMessage,
             lastMessageTime: formatLastMessageTime(conversation.lastMessageAt),
             avatarUrl: resolveProfileAvatar(otherUserProfile),
             hasUnread,
+            isProcessActive: conversation.isProcessActive,
           } satisfies ConversaChat;
         });
 
@@ -295,13 +490,46 @@ export default function ChatListScreen() {
           </Pressable>
         </View>
 
+        <View style={styles.tabs}>
+          {CHAT_TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+
+            return (
+              <Pressable
+                key={tab.key}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver conversas: ${tab.label}`}
+                onPress={() => handleChangeTab(tab.key)}
+                style={[
+                  styles.tabButton,
+                  isActive && styles.tabButtonActive,
+                ]}
+              >
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {isFinalizeMode ? (
+          <View style={styles.selectionNotice}>
+            <Text style={styles.selectionNoticeText}>
+              Selecione uma conversa ativa para finalizar o processo.
+            </Text>
+          </View>
+        ) : null}
+
         <FlatList
-          data={conversations}
+          data={filteredConversations}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ConversaChatListItem
               conversation={item}
               onPress={handleOpenConversation}
+              isSelectionMode={isFinalizeMode && item.isProcessActive !== false}
+              isSelected={selectedConversationId === item.id}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -314,24 +542,60 @@ export default function ChatListScreen() {
                   <Text style={styles.feedbackText}>Carregando conversas...</Text>
                 </>
               ) : (
-                <Text style={styles.feedbackText}>Nenhuma conversa encontrada.</Text>
+                <Text style={styles.feedbackText}>
+                  {activeTab === "finished"
+                    ? "Nenhum processo finalizado."
+                    : "Nenhuma conversa encontrada."}
+                </Text>
               )}
             </View>
           )}
         />
 
         <View style={styles.footer}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Finalizar um processo"
-            onPress={handleFinalizeProcess}
-            style={({ pressed }) => [
-              styles.footerButton,
-              pressed && styles.footerButtonPressed,
-            ]}
-          >
-            <Text style={styles.footerButtonText}>FINALIZAR UM PROCESSO</Text>
-          </Pressable>
+          {isFinalizeMode ? (
+            <View style={styles.footerActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar finalização"
+                onPress={handleFinalizeProcess}
+                style={({ pressed }) => [
+                  styles.footerSecondaryButton,
+                  pressed && styles.footerButtonPressed,
+                ]}
+              >
+                <Text style={styles.footerButtonText}>CANCELAR</Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Confirmar finalização do processo"
+                disabled={!selectedConversationId || isFinalizing}
+                onPress={handleConfirmFinalize}
+                style={({ pressed }) => [
+                  styles.footerButton,
+                  (!selectedConversationId || isFinalizing) && styles.footerButtonDisabled,
+                  pressed && styles.footerButtonPressed,
+                ]}
+              >
+                <Text style={styles.footerButtonText}>
+                  {isFinalizing ? "FINALIZANDO..." : "FINALIZAR"}
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Finalizar um processo"
+              onPress={handleFinalizeProcess}
+              style={({ pressed }) => [
+                styles.footerButtonWide,
+                pressed && styles.footerButtonPressed,
+              ]}
+            >
+              <Text style={styles.footerButtonText}>FINALIZAR UM PROCESSO</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -372,6 +636,47 @@ const styles = StyleSheet.create({
     color: "#434343",
     fontWeight: "500",
   },
+  tabs: {
+    flexDirection: "row",
+    backgroundColor: "#FAFAFA",
+    borderBottomWidth: 0.8,
+    borderBottomColor: "#E6E7E8",
+  },
+  tabButton: {
+    flex: 1,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderBottomWidth: 3,
+    borderBottomColor: "transparent",
+    paddingHorizontal: 4,
+  },
+  tabButtonActive: {
+    borderBottomColor: "#589B9B",
+  },
+  tabText: {
+    fontFamily: "Roboto_400Regular",
+    fontSize: 12,
+    color: "#757575",
+    textAlign: "center",
+  },
+  tabTextActive: {
+    color: "#434343",
+    fontWeight: "500",
+  },
+  selectionNotice: {
+    minHeight: 40,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    backgroundColor: "#FFF8D9",
+    borderBottomWidth: 0.8,
+    borderBottomColor: "#E6E7E8",
+  },
+  selectionNoticeText: {
+    fontFamily: "Roboto_400Regular",
+    fontSize: 13,
+    color: "#434343",
+  },
   listContent: {
     flexGrow: 1,
     paddingBottom: 120,
@@ -395,7 +700,11 @@ const styles = StyleSheet.create({
     bottom: 24,
     alignItems: "center",
   },
-  footerButton: {
+  footerActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  footerButtonWide: {
     width: 232,
     height: 40,
     backgroundColor: "#88C9BF",
@@ -407,6 +716,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+  },
+  footerButton: {
+    width: 136,
+    height: 40,
+    backgroundColor: "#88C9BF",
+    borderRadius: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  footerSecondaryButton: {
+    width: 108,
+    height: 40,
+    backgroundColor: "#E6E7E8",
+    borderRadius: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  footerButtonDisabled: {
+    opacity: 0.5,
   },
   footerButtonPressed: {
     opacity: 0.9,

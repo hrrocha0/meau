@@ -5,11 +5,15 @@ import { ConversaChat } from "../../types/chat";
 type Props = {
   conversation: ConversaChat;
   onPress: (conversation: ConversaChat) => void;
+  isSelected?: boolean;
+  isSelectionMode?: boolean;
 };
 
 export const ConversaChatListItem = memo(function ConversaChatListItem({
   conversation,
   onPress,
+  isSelected = false,
+  isSelectionMode = false,
 }: Props) {
   const { otherUserName, petName, lastMessage, lastMessageTime, avatarUrl, hasUnread } =
     conversation;
@@ -22,9 +26,17 @@ export const ConversaChatListItem = memo(function ConversaChatListItem({
       style={({ pressed }) => [
         styles.container,
         hasUnread && styles.containerUnread,
+        isSelectionMode && styles.containerSelectable,
+        isSelected && styles.containerSelected,
         pressed && styles.containerPressed,
       ]}
     >
+      {isSelectionMode ? (
+        <View style={[styles.selectionCircle, isSelected && styles.selectionCircleSelected]}>
+          {isSelected ? <View style={styles.selectionDot} /> : null}
+        </View>
+      ) : null}
+
       {avatarUrl ? (
         <Image
           source={{ uri: avatarUrl }}
@@ -69,6 +81,31 @@ const styles = StyleSheet.create({
   },
   containerUnread: {
     backgroundColor: "#F4FBF9",
+  },
+  containerSelectable: {
+    backgroundColor: "#FFFDF4",
+  },
+  containerSelected: {
+    backgroundColor: "#FFF4CC",
+  },
+  selectionCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: "#589B9B",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  selectionCircleSelected: {
+    backgroundColor: "#589B9B",
+  },
+  selectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FFFFFF",
   },
   avatar: {
     width: 48,

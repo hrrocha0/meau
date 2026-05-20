@@ -19,6 +19,14 @@ export type ChatConversationDocument = {
   proprietarioId?: string;
   interessadoUserId?: string;
   interessasdoUserId?: string;
+  proprietarioUserName?: string;
+  ownerUserName?: string;
+  proprietarioName?: string;
+  ownerName?: string;
+  interessadoUserName?: string;
+  interestedUserName?: string;
+  interessadoName?: string;
+  interestedName?: string;
   lastMessage?: string;
   lastMessageAt?: Timestamp | null;
   lastMessageSenderId?: string;
@@ -26,6 +34,8 @@ export type ChatConversationDocument = {
   interestedLastReadAt?: Timestamp | null;
   visibleToInterested?: boolean;
   adoptionRequestActive?: boolean;
+  finalizedAt?: Timestamp | null;
+  finalizedBy?: string;
 };
 
 export type ChatMessageDocument = {

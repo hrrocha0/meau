@@ -9,7 +9,6 @@ import {
   InputToolbar,
   Send,
 } from "react-native-gifted-chat";
-import { useHeaderHeight } from "@react-navigation/elements";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
@@ -31,6 +30,9 @@ import {
   ChatMessageDocument,
   UserProfileChatDocument,
 } from "../../../types/chat";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+const HEADER_HEIGHT = 56;
 
 type AnimalDocument = {
   nome?: string;
@@ -42,12 +44,50 @@ type ChatUser = {
   avatar?: string;
 };
 
-function resolveProfileName(profile: UserProfileChatDocument | null, fallbackId: string) {
+function resolveProfileName(profile: UserProfileChatDocument | null, fallbackName: string) {
   return (
     profile?.username?.trim()
     || profile?.name?.trim()
     || profile?.email?.split("@")[0]
-    || fallbackId
+    || fallbackName
+  );
+}
+
+function resolveMessageAuthorName(message?: string) {
+  const trimmedMessage = message?.trim();
+
+  if (!trimmedMessage) {
+    return undefined;
+  }
+
+  const adoptionIntentMatch = trimmedMessage.match(/^(.+?) pretende adotar /i);
+  const adoptionCancelMatch = trimmedMessage.match(/^(.+?) desistiu da adoção /i);
+
+  return adoptionIntentMatch?.[1]?.trim() || adoptionCancelMatch?.[1]?.trim();
+}
+
+function resolveConversationFallbackName(
+  conversation: ChatConversationDocument,
+  otherUserId: string,
+  proprietarioId: string,
+) {
+  if (otherUserId === proprietarioId) {
+    return (
+      conversation.proprietarioUserName?.trim()
+      || conversation.ownerUserName?.trim()
+      || conversation.proprietarioName?.trim()
+      || conversation.ownerName?.trim()
+      || otherUserId
+    );
+  }
+
+  return (
+    conversation.interessadoUserName?.trim()
+    || conversation.interestedUserName?.trim()
+    || conversation.interessadoName?.trim()
+    || conversation.interestedName?.trim()
+    || resolveMessageAuthorName(conversation.lastMessage)
+    || otherUserId
   );
 }
 
@@ -65,13 +105,13 @@ function resolveProfileAvatar(profile: UserProfileChatDocument | null) {
 export default function ChatConversationScreen() {
   const { conversaId } = useLocalSearchParams<{ conversaId?: string }>();
   const { user, profile } = useAuth();
+  const insets = useSafeAreaInsets();
   const [fontsLoaded] = useFonts({ Roboto_500Medium });
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
   const [petName, setPetName] = useState("Chat");
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [isVisibleToInterested, setIsVisibleToInterested] = useState(true);
-  const headerHeight = useHeaderHeight();
 
   useEffect(() => {
     let isActive = true;
@@ -98,6 +138,11 @@ export default function ChatConversationScreen() {
         }
 
         const otherUserId = proprietarioId === user.uid ? interessadoUserId : proprietarioId;
+        const fallbackName = resolveConversationFallbackName(
+          conversation,
+          otherUserId,
+          proprietarioId,
+        );
         const [otherUserSnapshot, animalSnapshot] = await Promise.all([
           getDoc(doc(db, "users", otherUserId)).catch(() => null),
           animalId ? getDoc(doc(db, "animals", animalId)).catch(() => null) : null,
@@ -115,7 +160,7 @@ export default function ChatConversationScreen() {
           setIsVisibleToInterested(conversation.visibleToInterested ?? true);
           setOtherUser({
             _id: otherUserId,
-            name: resolveProfileName(otherUserProfile, otherUserId),
+            name: resolveProfileName(otherUserProfile, fallbackName),
             avatar: resolveProfileAvatar(otherUserProfile),
           });
           setPetName(animalData?.nome?.trim() || "Chat");
@@ -268,6 +313,7 @@ export default function ChatConversationScreen() {
   );
 
   const headerTitle = otherUser?.name ?? "Chat";
+  const keyboardVerticalOffset = HEADER_HEIGHT + insets.bottom;
 
   if (!fontsLoaded) {
     return null;
@@ -304,61 +350,72 @@ export default function ChatConversationScreen() {
         }}
       />
 
-      <GiftedChat
-        messages={messages}
-        onSend={(newMessages) => {
-          if (!canCurrentUserSend) {
-            return;
-          }
+      <SafeAreaView edges={["bottom"]} style={styles.chatSafeArea}>
+        <GiftedChat
+          messages={messages}
+          onSend={(newMessages) => {
+            if (!canCurrentUserSend) {
+              return;
+            }
 
-          void onSend(newMessages);
-        }}
-        user={giftedUser}
-        isSendButtonAlwaysVisible
-        isScrollToBottomEnabled
-        textInputProps={{
-          placeholder: "Digite sua mensagem...",
-          editable: canCurrentUserSend,
-        }}
-        keyboardAvoidingViewProps={{
-          keyboardVerticalOffset: headerHeight,
-        }}
-        renderInputToolbar={(props) => (
-          canCurrentUserSend ? <InputToolbar {...props} /> : null
-        )}
-        renderSend={(props) => (
-          <Send
-            {...props}
-            containerStyle={styles.sendContainer}
-          >
-            <View style={styles.sendButton}>
-              <MaterialIcons name="send" size={24} color="#FFFFFF" />
-            </View>
-          </Send>
-        )}
-        renderBubble={(props) => (
-          <Bubble
-            {...props}
-            wrapperStyle={{
-              left: styles.leftBubble,
-              right: styles.rightBubble,
-            }}
-            textStyle={{
-              left: styles.leftBubbleText,
-              right: styles.rightBubbleText,
-            }}
-          />
-        )}
-        listProps={{
-          style: styles.messagesList,
-          contentContainerStyle: styles.messagesContent,
-        }}
-      />
+            void onSend(newMessages);
+          }}
+          user={giftedUser}
+          isSendButtonAlwaysVisible
+          isScrollToBottomEnabled
+          textInputProps={{
+            placeholder: "Digite sua mensagem...",
+            editable: canCurrentUserSend,
+          }}
+          keyboardAvoidingViewProps={{
+            keyboardVerticalOffset,
+          }}
+          renderInputToolbar={(props) => (
+            canCurrentUserSend ? (
+              <InputToolbar
+                {...props}
+                containerStyle={[styles.inputToolbar, props.containerStyle]}
+              />
+            ) : null
+          )}
+          renderSend={(props) => (
+            <Send
+              {...props}
+              containerStyle={styles.sendContainer}
+            >
+              <View style={styles.sendButton}>
+                <MaterialIcons name="send" size={24} color="#FFFFFF" />
+              </View>
+            </Send>
+          )}
+          renderBubble={(props) => (
+            <Bubble
+              {...props}
+              wrapperStyle={{
+                left: styles.leftBubble,
+                right: styles.rightBubble,
+              }}
+              textStyle={{
+                left: styles.leftBubbleText,
+                right: styles.rightBubbleText,
+              }}
+            />
+          )}
+          listProps={{
+            style: styles.messagesList,
+            contentContainerStyle: styles.messagesContent,
+          }}
+        />
+      </SafeAreaView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  chatSafeArea: {
+    flex: 1,
+    backgroundColor: "#F1F2F2",
+  },
   header: {
     backgroundColor: "#cfe9e5",
     height: 56,
@@ -379,6 +436,10 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: "center",
     justifyContent: "center",
+  },
+  inputToolbar: {
+    borderTopColor: "#E6E7E8",
+    borderTopWidth: 1,
   },
   sendContainer: {
     justifyContent: "center",

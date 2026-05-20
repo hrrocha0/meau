@@ -12,8 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { DrawerActions, useFocusEffect } from "@react-navigation/native";
-import { router, useNavigation } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -60,6 +59,10 @@ const CARD_MAX_WIDTH = 344;
 const CARD_HEADER_HEIGHT = 32;
 const CARD_IMAGE_HEIGHT = 183;
 const CARD_TOTAL_HEIGHT = 264;
+
+type DrawerNavigation = {
+  openDrawer: () => void;
+};
 
 export default function AdotarScreen() {
   const navigation = useNavigation();
@@ -154,7 +157,7 @@ export default function AdotarScreen() {
   );
 
   const handleOpenDrawer = useCallback(() => {
-    navigation.dispatch(DrawerActions.openDrawer());
+    (navigation as unknown as DrawerNavigation).openDrawer();
   }, [navigation]);
 
   const handleSearch = useCallback(() => {

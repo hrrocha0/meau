@@ -1,6 +1,5 @@
 import { Courgette_400Regular } from "@expo-google-fonts/courgette";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
-import { DrawerActions } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { SplashScreen, useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -13,6 +12,9 @@ import { DrawerButton } from "../../components/drawerButton";
 import { colors } from "../../constants";
 import { useAuth } from "../../contexts/AuthContext";
 
+type DrawerNavigation = {
+    openDrawer: () => void;
+};
 
 export default function Index() {
     // Carrega o router para a navegação entre telas
@@ -46,7 +48,7 @@ export default function Index() {
                         <View style={{ margin: 12 }}>
                             <DrawerButton
                                 color={colors.secondary}
-                                onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                                onPress={() => (navigation as unknown as DrawerNavigation).openDrawer()}
                             />
                         </View>
                     </View>

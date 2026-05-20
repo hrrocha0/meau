@@ -1,4 +1,5 @@
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';

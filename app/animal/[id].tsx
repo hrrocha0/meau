@@ -5,6 +5,7 @@ import {
   FlatList,
   Image,
   ImageSourcePropType,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -16,7 +17,7 @@ import {
   View,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StatusBar } from "expo-status-bar";
 import { doc, getDoc } from "firebase/firestore";
 import {
@@ -35,6 +36,7 @@ import { decodeBase64Image } from "../../utils/petImages";
 type PetDetail = {
   id: string;
   ownerId: string;
+  ownerName: string;
   nome: string;
   especie: string;
   sexo: string;
@@ -73,6 +75,9 @@ type AnimalDocument = {
 };
 
 type UserProfileDocument = {
+  name?: string;
+  username?: string;
+  email?: string;
   city?: string;
   state?: string;
 };
@@ -90,6 +95,15 @@ function hasHealthFlag(items: string[] | undefined, terms: string[]) {
   );
 }
 
+function resolveProfileName(profile: UserProfileDocument | null, fallback: string) {
+  return (
+    profile?.username?.trim()
+    || profile?.name?.trim()
+    || profile?.email?.split("@")[0]
+    || fallback
+  );
+}
+
 export default function PetDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { user, profile } = useAuth();
@@ -100,6 +114,7 @@ export default function PetDetailScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [hasAdoptionRequest, setHasAdoptionRequest] = useState(false);
+  const [isAuthPromptVisible, setIsAuthPromptVisible] = useState(false);
   const { width } = useWindowDimensions();
 
   const contentWidth = useMemo(
@@ -172,6 +187,7 @@ export default function PetDetailScreen() {
           const nextPet = {
             id: animalSnapshot.id,
             ownerId: animalData.usuarioId?.trim() || "",
+            ownerName: resolveProfileName(ownerData, animalData.usuarioId?.trim() || "Responsável"),
             nome: animalData.nome?.trim() || "Sem nome",
             especie: animalData.especie?.trim() || "Não informada",
             sexo: animalData.sexo?.trim() || "Não informado",
@@ -315,7 +331,7 @@ export default function PetDetailScreen() {
     }
 
     if (!user?.uid) {
-      Alert.alert("Login necessário", "Faça login para demonstrar interesse em adotar.");
+      setIsAuthPromptVisible(true);
       return;
     }
 
@@ -361,6 +377,10 @@ export default function PetDetailScreen() {
         animalId: pet.id,
         proprietarioId: pet.ownerId,
         interessadoUserId: user.uid,
+        proprietarioUserName: pet.ownerName,
+        ownerUserName: pet.ownerName,
+        interessadoUserName: interestedUserName,
+        interestedUserName,
         lastMessage: firstMessage,
         lastMessageAt: serverTimestamp(),
         lastMessageSenderId: user.uid,
@@ -384,6 +404,20 @@ export default function PetDetailScreen() {
   const handleToggleFavorite = useCallback(() => {
     void handleAdopt();
   }, [handleAdopt]);
+
+  const handleCloseAuthPrompt = useCallback(() => {
+    setIsAuthPromptVisible(false);
+  }, []);
+
+  const handleGoToSignup = useCallback(() => {
+    setIsAuthPromptVisible(false);
+    router.push("/signup");
+  }, []);
+
+  const handleGoToLogin = useCallback(() => {
+    setIsAuthPromptVisible(false);
+    router.push("/login");
+  }, []);
 
   const isOwnPet = pet?.ownerId === user?.uid;
   const adoptionButtonLabel = hasAdoptionRequest
@@ -618,6 +652,57 @@ export default function PetDetailScreen() {
             </View>
           )}
         </ScrollView>
+
+        <Modal
+          animationType="fade"
+          transparent
+          visible={isAuthPromptVisible}
+          onRequestClose={handleCloseAuthPrompt}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.authPrompt}>
+              <Text style={styles.authPromptTitle}>Cadastro necessário</Text>
+              <Text style={styles.authPromptText}>
+                Para poder adotar um animal, realize seu cadastro ou faça login.
+              </Text>
+
+              <View style={styles.authPromptActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Cadastrar"
+                  onPress={handleGoToSignup}
+                  style={({ pressed }) => [
+                    styles.authPromptPrimaryButton,
+                    pressed && styles.authPromptButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.authPromptPrimaryText}>CADASTRAR</Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Fazer login"
+                  onPress={handleGoToLogin}
+                  style={({ pressed }) => [
+                    styles.authPromptSecondaryButton,
+                    pressed && styles.authPromptButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.authPromptSecondaryText}>LOGIN</Text>
+                </Pressable>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Fechar aviso de cadastro"
+                onPress={handleCloseAuthPrompt}
+                style={styles.authPromptCloseButton}
+              >
+                <MaterialIcons name="close" size={22} color="#434343" />
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -881,5 +966,85 @@ const styles = StyleSheet.create({
   },
   ctaButtonTextDisabled: {
     color: "#8A8A8A",
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+    paddingHorizontal: 24,
+  },
+  authPrompt: {
+    width: "100%",
+    maxWidth: 328,
+    minHeight: 188,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 4,
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    paddingBottom: 20,
+    shadowColor: "#000000",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  authPromptTitle: {
+    fontFamily: "Roboto_500Medium",
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#434343",
+    marginBottom: 12,
+  },
+  authPromptText: {
+    fontFamily: "Roboto_400Regular",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#434343",
+    marginBottom: 24,
+  },
+  authPromptActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  authPromptPrimaryButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 2,
+    backgroundColor: "#FDCF58",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  authPromptSecondaryButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 2,
+    backgroundColor: "#E6E7E8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  authPromptButtonPressed: {
+    opacity: 0.85,
+  },
+  authPromptPrimaryText: {
+    fontFamily: "Roboto_500Medium",
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#434343",
+  },
+  authPromptSecondaryText: {
+    fontFamily: "Roboto_500Medium",
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#434343",
+  },
+  authPromptCloseButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

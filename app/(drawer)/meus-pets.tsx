@@ -1,5 +1,4 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import { DrawerActions } from "@react-navigation/native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router, useNavigation } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
@@ -62,6 +61,10 @@ const CARD_MAX_WIDTH = 344;
 const CARD_HEADER_HEIGHT = 32;
 const CARD_IMAGE_HEIGHT = 183;
 const CARD_TOTAL_HEIGHT = 264;
+
+type DrawerNavigation = {
+    openDrawer: () => void;
+};
 
 export default function MeusPetsScreen() {
     const navigation = useNavigation();
@@ -154,7 +157,7 @@ export default function MeusPetsScreen() {
     }, []);
 
     const handleOpenDrawer = useCallback(() => {
-        navigation.dispatch(DrawerActions.openDrawer());
+        (navigation as unknown as DrawerNavigation).openDrawer();
     }, [navigation]);
 
     const handleSearch = useCallback(() => {
