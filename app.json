@@ -13,6 +13,11 @@
     },
     "android": {
       "package": "com.appunb.meau",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyChXUUYPjhGVZHkrpnPKhfkDXWo1LsAZdI"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
