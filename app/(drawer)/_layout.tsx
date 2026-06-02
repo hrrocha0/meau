@@ -33,6 +33,13 @@ export default function DrawerLayout() {
                     drawerItemStyle: { display: "none" },
                 }}
             />
+            <Drawer.Screen
+                name="mapa-global"
+                options={{
+                    drawerLabel: "Mapa de Animais",
+                    title: "Mapa Global",
+                }}
+            />
         </Drawer>
     );
 }
