@@ -13,6 +13,15 @@
     },
     "android": {
       "package": "com.appunb.meau",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyChXUUYPjhGVZHkrpnPKhfkDXWo1LsAZdI"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -30,7 +39,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "3f8564ad-2bc3-44bc-988e-f317de66fccc"
+        "projectId": "8e911f23-3855-41d8-92df-39d344575a3c"
       }
     },
     "ios": {
@@ -39,6 +48,6 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-    "owner": "tms.veloso"
+    "owner": "gustavomenabarreto"
   }
 }

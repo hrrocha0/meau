@@ -31,6 +31,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../contexts/AuthContext";
 import { db } from "../../firebaseConfig";
+import { PetLocationMap } from "../../components/PetLocationMap";
 import { decodeBase64Image } from "../../utils/petImages";
 
 type PetDetail = {
@@ -51,6 +52,8 @@ type PetDetail = {
   exigenciasDoador: string;
   descricao: string;
   imagens: ImageSourcePropType[];
+  latitude: number | null;
+  longitude: number | null;
   favorito?: boolean;
 };
 
@@ -72,6 +75,8 @@ type AnimalDocument = {
   descricao?: string;
   fotoUrl?: string;
   fotos?: AnimalPhotoDocument[];
+  latitude?: number | string;
+  longitude?: number | string;
 };
 
 type UserProfileDocument = {
@@ -80,6 +85,7 @@ type UserProfileDocument = {
   email?: string;
   city?: string;
   state?: string;
+  address?: string;
 };
 
 const TOP_BAR_HEIGHT = 24;
@@ -102,6 +108,80 @@ function resolveProfileName(profile: UserProfileDocument | null, fallback: strin
     || profile?.email?.split("@")[0]
     || fallback
   );
+}
+
+async function geocodeAddress(addressParts: string[]) {
+  const queryText = addressParts
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(", ");
+
+  if (!queryText) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(queryText)}`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const [firstResult] = await response.json() as Array<{
+      lat?: string;
+      lon?: string;
+    }>;
+    const latitude = Number(firstResult?.lat);
+    const longitude = Number(firstResult?.lon);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  } catch (error) {
+    console.error("Erro ao buscar coordenadas do endereço:", error);
+    return null;
+  }
+}
+
+async function geocodeOwnerLocation({
+  address,
+  city,
+  state,
+}: {
+  address?: string;
+  city?: string;
+  state?: string;
+}) {
+  const candidates = [
+    [address ?? "", city ?? "", state ?? "", "Brasil"],
+    [city ?? "", state ?? "", "Brasil"],
+    [state ?? "", "Brasil"],
+  ];
+
+  for (const candidate of candidates) {
+    const location = await geocodeAddress(candidate);
+
+    if (location) {
+      return location;
+    }
+  }
+
+  return null;
+}
+
+function parseCoordinate(value: number | string | undefined) {
+  const coordinate = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(coordinate) ? coordinate : null;
 }
 
 export default function PetDetailScreen() {
@@ -178,10 +258,17 @@ export default function PetDetailScreen() {
 
         const city = ownerData?.city?.trim();
         const state = ownerData?.state?.trim();
+        const address = ownerData?.address?.trim();
         const healthItems = animalData.saude ?? [];
         const temperamentos = (animalData.temperamentos ?? [])
           .map((item) => item.trim())
           .filter(Boolean);
+        const animalLatitude = parseCoordinate(animalData.latitude);
+        const animalLongitude = parseCoordinate(animalData.longitude);
+        const geocodedOwnerLocation =
+          animalLatitude === null || animalLongitude === null
+            ? await geocodeOwnerLocation({ address, city, state })
+            : null;
 
         if (isActive) {
           const nextPet = {
@@ -217,6 +304,8 @@ export default function PetDetailScreen() {
             exigenciasDoador: "A combinar com o doador responsável.",
             descricao: animalData.descricao?.trim() || "Sem descrição.",
             imagens,
+            latitude: animalLatitude ?? geocodedOwnerLocation?.latitude ?? null,
+            longitude: animalLongitude ?? geocodedOwnerLocation?.longitude ?? null,
             favorito: false,
           };
 
@@ -589,6 +678,16 @@ export default function PetDetailScreen() {
                   <InfoBlock label="LOCALIZAÇÃO" value={pet.localizacao} />
                 </View>
 
+                {pet.latitude !== null && pet.longitude !== null ? (
+                  <View style={styles.mapBlock}>
+                    <PetLocationMap
+                      latitude={pet.latitude}
+                      longitude={pet.longitude}
+                      title={`Localização de ${pet.nome}`}
+                    />
+                  </View>
+                ) : null}
+
                 <Divider />
 
                 <InfoGridRow
@@ -915,6 +1014,9 @@ const styles = StyleSheet.create({
   },
   locationBlock: {
     marginTop: 16,
+  },
+  mapBlock: {
+    marginTop: 12,
   },
   sectionLabel: {
     fontFamily: "Roboto_400Regular",

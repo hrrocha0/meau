@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import * as Location from "expo-location";
 import { AppButton } from "../../components/appButton";
 import { ImageButton } from "../../components/imageButton";
 import { Checklist } from "../../components/input/checklist";
@@ -173,6 +174,15 @@ export default function Register() {
         }
 
         try {
+            const { status } =
+                await Location.requestForegroundPermissionsAsync();
+
+            if (status !== "granted") {
+                alert("Permissão de localização negada.");
+                return;
+            }
+            const location =
+                await Location.getCurrentPositionAsync({});
             setIsSubmitting(true);
             const serializedPhotos = petPhotos.map((photo) => ({
                 base64: photo.base64,
@@ -200,6 +210,8 @@ export default function Register() {
                 fotoUrl: mainPhotoDataUri,
                 fotos: serializedPhotos,
                 totalFotos: serializedPhotos.length,
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
                 criadoEm: serverTimestamp(),
             });
 

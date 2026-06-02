@@ -91,6 +91,7 @@ export default function DrawerMenuContent({
               <MenuItem label="Meus pets" onPress={() => goTo("/meus-pets")} />
               <MenuItem label="Favoritos" onPress={() => goTo("/favoritos")} />
               <MenuItem label="Chat" onPress={() => goTo("/chat")} />
+              <MenuItem label="Mapa" onPress={() => goTo("/mapa-global")} />
             </>
           ) : (
             <>
