@@ -5,8 +5,8 @@
 ## Alunos
 |  | Matrícula | Aluno                         | Curso                       | GitHub                                                   |
 | - | --------- | ----------------------------- | --------------------------- | -------------------------------------------------------- |
-| <img src="https://github.com/hrrocha0.png?size=32" width="32" style="border-radius: 50%;" alt="@hrrocha0" /> | 232026414 | Gustavo Mourão Mena Barreto   | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@hrrocha0](https://github.com/hrrocha0)                 |
-| <img src="https://github.com/GustavommBarreto.png?size=32" width="32" style="border-radius: 50%;" alt="@GustavommBarreto" /> | 211036061 | Henrique Rodrigues Rocha      | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@GustavommBarreto](https://github.com/GustavommBarreto) |
+| <img src="https://github.com/GustavommBarreto.png?size=32" width="32" style="border-radius: 50%;" alt="@GustavommBarreto" /> | 232026414 | Gustavo Mourão Mena Barreto   | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@GustavommBarreto](https://github.com/GustavommBarreto)                 |
+| <img src="https://github.com/hrrocha0.png?size=32" width="32" style="border-radius: 50%;" alt="@hrrocha0" /> | 211036061 | Henrique Rodrigues Rocha      | CIÊNCIA DA COMPUTAÇÃO/CIC   | [@hrrocha0](https://github.com/hrrocha0) |
 | <img src="https://github.com/tomasvelos0.png?size=32" width="32" style="border-radius: 50%;" alt="@tomasvelos0" /> | 180138596 | Tomás Veloso Peixoto Matutino | ENGENHARIA DE SOFTWARE/FCTE | [@tomasvelos0](https://github.com/tomasvelos0)           |
 
 
@@ -17,6 +17,8 @@ Aplicativo [Expo](https://docs.expo.dev/) sendo implementado para a disciplina d
 - [x] Autenticação;
 - [x] Cadastro de animais;
 - [x] Visualização de animais cadastrados;
+- [X] Chat; 
+- [X] Mapas e localização; 
 
 ## Instruções
 
