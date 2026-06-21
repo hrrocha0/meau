@@ -7,11 +7,11 @@ import {
   Pressable,
   Image,
 } from "react-native";
-import MapView, { Marker, Circle } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useNearbyPets, PetPin } from "../../hooks/usaPetsproximos";
 import { colors } from "../../constants";
+import { GlobalPetsMap } from "../../components/GlobalPetsMap";
 
 export default function MapaGlobal() {
   const { pets, userLocation, loading, error } = useNearbyPets(50);
@@ -36,46 +36,11 @@ export default function MapaGlobal() {
 
   return (
     <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-          // ~50km de raio visível
-          latitudeDelta: 0.9,
-          longitudeDelta: 0.9,
-        }}
-        showsUserLocation
-        showsMyLocationButton
-      >
-        {/* Círculo mostrando o raio de busca */}
-        <Circle
-          center={userLocation}
-          radius={50000} // 50km em metros
-          strokeColor={colors.primary + "80"}
-          fillColor={colors.primary + "10"}
-        />
-
-        {/* Um marcador por animal */}
-        {pets.map((pet) => (
-          <Marker
-            key={pet.id}
-            coordinate={{ latitude: pet.latitude, longitude: pet.longitude }}
-            onPress={() => setSelecionado(pet)}
-          >
-            {/* Marcador com foto ou emoji de espécie */}
-            <View style={styles.pin}>
-              {pet.imagemUri ? (
-                <Image source={{ uri: pet.imagemUri }} style={styles.pinImg} />
-              ) : (
-                <Text style={styles.pinEmoji}>
-                  {pet.especie?.toLowerCase().includes("gato") ? "🐱" : "🐶"}
-                </Text>
-              )}
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+      <GlobalPetsMap
+        pets={pets}
+        userLocation={userLocation}
+        onSelectPet={setSelecionado}
+      />
 
       {/* Header sobreposto */}
       <SafeAreaView style={styles.header} edges={["top"]}>
@@ -119,7 +84,6 @@ export default function MapaGlobal() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  map: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
   loadingText: { color: colors.onSurface, fontSize: 14 },
   errorText: { color: "red", fontSize: 14, textAlign: "center", paddingHorizontal: 24 },
@@ -136,21 +100,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ddd",
   },
   headerTitle: { fontSize: 15, fontWeight: "500", color: colors.onSurface },
-
-  pin: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: colors.primary,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 3,
-  },
-  pinImg: { width: 40, height: 40 },
-  pinEmoji: { fontSize: 22 },
 
   bottomSheet: {
     position: "absolute",

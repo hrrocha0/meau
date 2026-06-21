@@ -1,7 +1,5 @@
-import { Roboto_400Regular, Roboto_500Medium } from "@expo-google-fonts/roboto";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useFonts } from "expo-font";
-import { SplashScreen, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
@@ -49,14 +47,6 @@ export default function Register() {
     const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const [loaded, error] = useFonts({ Roboto_400Regular, Roboto_500Medium });
-
-    useEffect(() => {
-        if (loaded || error) {
-            SplashScreen.hideAsync();
-        }
-    }, [loaded, error]);
-
     function resetForm() {
         setAnimalName("");
         setSpecies("");
@@ -80,10 +70,6 @@ export default function Register() {
             router.replace("/error");
         }
     }, [isAuthResolved, router, user]);
-
-    if (!loaded && !error) {
-        return null;
-    }
 
     if (!isAuthResolved || !user) {
         return null;

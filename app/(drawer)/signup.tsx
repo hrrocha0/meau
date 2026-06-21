@@ -1,9 +1,7 @@
-import { Roboto_400Regular, Roboto_500Medium } from "@expo-google-fonts/roboto";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { useFonts } from "expo-font";
-import { SplashScreen, useNavigation, useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
@@ -270,18 +268,6 @@ export default function SignUpScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  const [loaded, error] = useFonts({ Roboto_400Regular, Roboto_500Medium });
-
-  useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded, error]);
-
-  if (!loaded && !error) {
-    return null;
   }
 
   return (

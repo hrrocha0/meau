@@ -1,9 +1,13 @@
 import "react-native-gesture-handler";
+import { Courgette_400Regular } from "@expo-google-fonts/courgette";
+import { Roboto_400Regular, Roboto_500Medium } from "@expo-google-fonts/roboto";
+import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
+import { configureNotificationResponseHandling } from "../services/notifications";
 
 const GUEST_ALLOWED_ROUTES = new Set(["login", "error"]);
 const UNAUTH_ONLY_ROUTES = new Set(["login"]);
@@ -60,6 +64,20 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+    const [fontsLoaded] = useFonts({
+        Courgette_400Regular,
+        Roboto_400Regular,
+        Roboto_500Medium,
+    });
+
+    useEffect(() => {
+        return configureNotificationResponseHandling();
+    }, []);
+
+    if (!fontsLoaded) {
+        return null;
+    }
+
     return (
         <GestureHandlerRootView style={styles.container}>
             <AuthProvider>

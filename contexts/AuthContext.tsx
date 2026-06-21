@@ -8,6 +8,10 @@ import {
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig";
+import {
+  registerPushTokenForUser,
+  unregisterPushTokenForUser,
+} from "../services/notifications";
 
 type UserProfilePhoto = {
   base64?: string;
@@ -43,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isAuthResolved, setIsAuthResolved] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [registeredPushToken, setRegisteredPushToken] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -52,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         setIsProfileLoading(false);
         setIsAuthResolved(true);
+        setRegisteredPushToken(null);
         return;
       }
 
@@ -73,12 +79,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsProfileLoading(false);
         setIsAuthResolved(true);
       }
+
+      registerPushTokenForUser(firebaseUser.uid)
+        .then(setRegisteredPushToken)
+        .catch((error) => {
+          console.error("Erro ao registrar token de notificação:", error);
+          setRegisteredPushToken(null);
+        });
     });
 
     return unsubscribe;
   }, []);
 
   async function logout() {
+    if (user?.uid) {
+      await unregisterPushTokenForUser(user.uid, registeredPushToken).catch((error) => {
+        console.error("Erro ao remover token de notificação:", error);
+      });
+    }
+
     await signOut(auth);
   }
 

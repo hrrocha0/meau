@@ -33,6 +33,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { db } from "../../firebaseConfig";
 import { PetLocationMap } from "../../components/PetLocationMap";
 import { decodeBase64Image } from "../../utils/petImages";
+import {
+  notifyAdoptionCanceled,
+  notifyAdoptionRequest,
+} from "../../services/notifications";
 
 type PetDetail = {
   id: string;
@@ -453,6 +457,15 @@ export default function PetDetailScreen() {
           interestedLastReadAt: serverTimestamp(),
         });
 
+        await notifyAdoptionCanceled({
+          recipientUserId: pet.ownerId,
+          senderUserId: user.uid,
+          senderName: interestedUserName,
+          conversationId,
+          petId: pet.id,
+          petName: pet.nome,
+        });
+
         return;
       }
 
@@ -476,6 +489,9 @@ export default function PetDetailScreen() {
         interestedLastReadAt: serverTimestamp(),
         visibleToInterested: currentConversation?.visibleToInterested ?? false,
         adoptionRequestActive: true,
+        adoptionResponseAction: null,
+        adoptionResponseAt: null,
+        adoptionResponseBy: null,
         ...(currentConversation ? {} : { ownerLastReadAt: null }),
       }, { merge: true });
 
@@ -483,6 +499,15 @@ export default function PetDetailScreen() {
         senderId: user.uid,
         text: firstMessage,
         createdAt: serverTimestamp(),
+      });
+
+      await notifyAdoptionRequest({
+        recipientUserId: pet.ownerId,
+        senderUserId: user.uid,
+        senderName: interestedUserName,
+        conversationId,
+        petId: pet.id,
+        petName: pet.nome,
       });
     } catch (error) {
       console.error("Erro ao registrar intenção de adoção:", error);

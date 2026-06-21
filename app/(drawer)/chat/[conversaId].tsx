@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Roboto_500Medium } from "@expo-google-fonts/roboto";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useFonts } from "expo-font";
 import {
   Bubble,
   GiftedChat,
@@ -31,6 +29,7 @@ import {
   UserProfileChatDocument,
 } from "../../../types/chat";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { notifyChatMessage } from "../../../services/notifications";
 
 const HEADER_HEIGHT = 56;
 
@@ -106,11 +105,11 @@ export default function ChatConversationScreen() {
   const { conversaId } = useLocalSearchParams<{ conversaId?: string }>();
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
-  const [fontsLoaded] = useFonts({ Roboto_500Medium });
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
   const [petName, setPetName] = useState("Chat");
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [interestedUserId, setInterestedUserId] = useState<string | null>(null);
   const [isVisibleToInterested, setIsVisibleToInterested] = useState(true);
 
   useEffect(() => {
@@ -157,6 +156,7 @@ export default function ChatConversationScreen() {
 
         if (isActive) {
           setOwnerId(proprietarioId);
+          setInterestedUserId(interessadoUserId);
           setIsVisibleToInterested(conversation.visibleToInterested ?? true);
           setOtherUser({
             _id: otherUserId,
@@ -298,10 +298,31 @@ export default function ChatConversationScreen() {
       }
 
       await updateDoc(doc(db, "conversa", conversaId), nextConversationState);
+
+      const recipientUserId = user.uid === ownerId ? interestedUserId : ownerId;
+
+      if (recipientUserId) {
+        await notifyChatMessage({
+          recipientUserId,
+          senderUserId: user.uid,
+          senderName: profile?.username ?? profile?.name ?? "Meau",
+          conversationId: conversaId,
+          message: text,
+        });
+      }
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
     }
-  }, [conversaId, isCurrentUserOwner, isVisibleToInterested, user?.uid]);
+  }, [
+    conversaId,
+    interestedUserId,
+    isCurrentUserOwner,
+    isVisibleToInterested,
+    ownerId,
+    profile?.name,
+    profile?.username,
+    user?.uid,
+  ]);
 
   const giftedUser = useMemo(
     () => ({
@@ -314,10 +335,6 @@ export default function ChatConversationScreen() {
 
   const headerTitle = otherUser?.name ?? "Chat";
   const keyboardVerticalOffset = HEADER_HEIGHT + insets.bottom;
-
-  if (!fontsLoaded) {
-    return null;
-  }
 
   return (
     <>

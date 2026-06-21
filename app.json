@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.appunb.meau",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
@@ -34,12 +35,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-notifications"
     ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "8e911f23-3855-41d8-92df-39d344575a3c"
+        "projectId": "3f8564ad-2bc3-44bc-988e-f317de66fccc"
       }
     },
     "ios": {
@@ -48,6 +50,6 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-    "owner": "gustavomenabarreto"
+    "owner": "tms.veloso"
   }
 }

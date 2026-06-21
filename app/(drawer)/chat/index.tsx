@@ -34,6 +34,7 @@ import {
   ConversaChat,
   UserProfileChatDocument,
 } from "@/types/chat";
+import { notifyAdoptionFinished } from "@/services/notifications";
 
 const TOP_BAR_HEIGHT = 24;
 const HEADER_HEIGHT = 56;
@@ -246,6 +247,14 @@ export default function ChatListScreen() {
         lastMessageAt: serverTimestamp(),
         lastMessageSenderId: user.uid,
         visibleToInterested: true,
+      });
+
+      await notifyAdoptionFinished({
+        recipientUserId: selectedConversation.otherUserId,
+        senderUserId: user.uid,
+        senderName: "Meau",
+        conversationId: selectedConversation.id,
+        petName: selectedConversation.petName,
       });
 
       setConversations((currentConversations) => (
