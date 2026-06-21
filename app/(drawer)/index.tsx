@@ -13,11 +13,9 @@ import { colors } from "../../constants";
 import { useAuth } from "../../contexts/AuthContext";
 import * as Notifications from "expo-notifications";
 import * as Constants from "expo-constants";
-
 type DrawerNavigation = {
   openDrawer: () => void;
 };
-
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: false,
@@ -26,7 +24,6 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-
 async function schedulePushNotification() {
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -40,17 +37,14 @@ async function schedulePushNotification() {
     },
   });
 }
-
 async function registerForPushNotificationsAsync() {
   let token;
-
   await Notifications.setNotificationChannelAsync("myNotificationChannel", {
     name: "A channel is needed for the permissions prompt to appear",
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#FF231F7C",
   });
-
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
   if (existingStatus !== "granted") {
@@ -78,20 +72,19 @@ async function registerForPushNotificationsAsync() {
   } catch (e) {
     token = `${e}`;
   }
-
   return token;
 }
-
 export default function Index() {
   // Carrega o router para a navegação entre telas
-
   const router = useRouter();
   const navigation = useNavigation();
   const { profile, user } = useAuth();
-
   // Carrega as fontes utilizadas na página
-
   const [loaded, error] = useFonts({ Courgette_400Regular, Roboto_400Regular });
+
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [channels, setChannels] = useState<Notifications.NotificationChannel[]>([]);
+  const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
 
   useEffect(() => {
     if (loaded || error) {
@@ -99,17 +92,8 @@ export default function Index() {
     }
   }, [loaded, error]);
 
-  if (!loaded && !error) {
-    return null;
-  }
-
-  const [expoPushToken, setExpoPushToken] = useState("");
-  const [channels, setChannels] = useState<Notifications.NotificationChannel[]>([]);
-  const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
-
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => token && setExpoPushToken(token));
-
     Notifications.getNotificationChannelsAsync().then((value) => setChannels(value ?? []));
 
     const notificationListener = Notifications.addNotificationReceivedListener((notification) => {
@@ -125,6 +109,10 @@ export default function Index() {
       responseListener.remove();
     };
   }, []);
+
+  if (!loaded && !error) {
+    return null;
+  }
 
   // Implementação da tela
 

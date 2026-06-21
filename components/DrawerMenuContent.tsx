@@ -3,12 +3,26 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as Notifications from "expo-notifications";
 import { useAuth } from "../contexts/AuthContext";
 import { decodeBase64Image } from "../utils/petImages";
 
 type DrawerMenuContentProps = {
   onClose?: () => void;
 };
+
+// Dispara uma notificação local imediata, sem depender da Cloud Function.
+// Útil para testar a exibição/permissões sem precisar de uma segunda conta.
+async function testarNotificacaoLocal() {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "💬 Teste — Rex",
+      body: "Esta é uma notificação de teste local.",
+      sound: "default",
+    },
+    trigger: null,
+  });
+}
 
 export default function DrawerMenuContent({
   onClose = () => {},
@@ -139,6 +153,7 @@ export default function DrawerMenuContent({
           onPress={() => toggleSection("configuracoes")}
         >
           <MenuItem label="Privacidade" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="🔔 Testar notificação" onPress={testarNotificacaoLocal} />
         </DropdownSection>
 
         {isLoggedIn ? (
