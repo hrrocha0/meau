@@ -1,14 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Alert,
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect, useNavigation } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StatusBar } from "expo-status-bar";
@@ -29,11 +20,7 @@ import { ConversaChatListItem } from "@/components/chat/ConversaChatListItem";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/firebaseConfig";
 import { decodeBase64Image } from "@/utils/petImages";
-import {
-  ChatConversationDocument,
-  ConversaChat,
-  UserProfileChatDocument,
-} from "@/types/chat";
+import { ChatConversationDocument, ConversaChat, UserProfileChatDocument } from "@/types/chat";
 import { notifyAdoptionFinished } from "@/services/notifications";
 
 const TOP_BAR_HEIGHT = 24;
@@ -68,12 +55,7 @@ function formatLastMessageTime(value?: Timestamp | null) {
 }
 
 function resolveProfileName(profile: UserProfileChatDocument | null, fallbackName: string) {
-  return (
-    profile?.username?.trim()
-    || profile?.name?.trim()
-    || profile?.email?.split("@")[0]
-    || fallbackName
-  );
+  return profile?.username?.trim() || profile?.name?.trim() || profile?.email?.split("@")[0] || fallbackName;
 }
 
 function resolveMessageAuthorName(message?: string) {
@@ -89,27 +71,24 @@ function resolveMessageAuthorName(message?: string) {
   return adoptionIntentMatch?.[1]?.trim() || adoptionCancelMatch?.[1]?.trim();
 }
 
-function resolveConversationFallbackName(
-  conversation: ChatConversationDocument,
-  otherUserId: string,
-) {
+function resolveConversationFallbackName(conversation: ChatConversationDocument, otherUserId: string) {
   if (otherUserId === conversation.proprietarioId) {
     return (
-      conversation.proprietarioUserName?.trim()
-      || conversation.ownerUserName?.trim()
-      || conversation.proprietarioName?.trim()
-      || conversation.ownerName?.trim()
-      || otherUserId
+      conversation.proprietarioUserName?.trim() ||
+      conversation.ownerUserName?.trim() ||
+      conversation.proprietarioName?.trim() ||
+      conversation.ownerName?.trim() ||
+      otherUserId
     );
   }
 
   return (
-    conversation.interessadoUserName?.trim()
-    || conversation.interestedUserName?.trim()
-    || conversation.interessadoName?.trim()
-    || conversation.interestedName?.trim()
-    || resolveMessageAuthorName(conversation.lastMessage)
-    || otherUserId
+    conversation.interessadoUserName?.trim() ||
+    conversation.interestedUserName?.trim() ||
+    conversation.interessadoName?.trim() ||
+    conversation.interestedName?.trim() ||
+    resolveMessageAuthorName(conversation.lastMessage) ||
+    otherUserId
   );
 }
 
@@ -118,16 +97,10 @@ function resolveProfileAvatar(profile: UserProfileChatDocument | null) {
     return undefined;
   }
 
-  return decodeBase64Image(
-    profile.profilePhoto.base64,
-    profile.profilePhoto.mimeType ?? "image/jpeg",
-  );
+  return decodeBase64Image(profile.profilePhoto.base64, profile.profilePhoto.mimeType ?? "image/jpeg");
 }
 
-function normalizeConversation(
-  id: string,
-  data: ChatConversationDocument,
-) {
+function normalizeConversation(id: string, data: ChatConversationDocument) {
   const proprietarioId = data.proprietarioId?.trim();
   const interessadoUserId = data.interessadoUserId?.trim() || data.interessasdoUserId?.trim();
   const animalId = data.animalId?.trim();
@@ -161,23 +134,25 @@ export default function ChatListScreen() {
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const filteredConversations = useMemo(() => (
-    conversations.filter((conversation) => {
-      if (activeTab === "finished") {
-        return conversation.isProcessActive === false;
-      }
+  const filteredConversations = useMemo(
+    () =>
+      conversations.filter((conversation) => {
+        if (activeTab === "finished") {
+          return conversation.isProcessActive === false;
+        }
 
-      if (conversation.isProcessActive === false) {
-        return false;
-      }
+        if (conversation.isProcessActive === false) {
+          return false;
+        }
 
-      if (activeTab === "owner") {
-        return conversation.proprietarioId === user?.uid;
-      }
+        if (activeTab === "owner") {
+          return conversation.proprietarioId === user?.uid;
+        }
 
-      return conversation.interessadoUserId === user?.uid;
-    })
-  ), [activeTab, conversations, user?.uid]);
+        return conversation.interessadoUserId === user?.uid;
+      }),
+    [activeTab, conversations, user?.uid],
+  );
 
   const handleOpenDrawer = useCallback(() => {
     (navigation as unknown as DrawerNavigation).openDrawer();
@@ -218,90 +193,89 @@ export default function ChatListScreen() {
       return;
     }
 
-    setActiveTab((currentTab) => currentTab === "finished" ? "owner" : currentTab);
+    setActiveTab((currentTab) => (currentTab === "finished" ? "owner" : currentTab));
     setIsFinalizeMode(true);
     setSelectedConversationId(null);
   }, [isFinalizeMode]);
 
-  const finalizeSelectedConversation = useCallback(async (selectedConversation: ConversaChat) => {
-    if (!user?.uid || isFinalizing) {
-      return;
-    }
+  const finalizeSelectedConversation = useCallback(
+    async (selectedConversation: ConversaChat) => {
+      if (!user?.uid || isFinalizing) {
+        return;
+      }
 
-    const finalMessage = `Processo de adoção de ${selectedConversation.petName} finalizado.`;
+      const finalMessage = `Processo de adoção de ${selectedConversation.petName} finalizado.`;
 
-    try {
-      setIsFinalizing(true);
+      try {
+        setIsFinalizing(true);
 
-      await addDoc(collection(db, "conversa", selectedConversation.id, "mensagens"), {
-        senderId: user.uid,
-        text: finalMessage,
-        createdAt: serverTimestamp(),
-      });
+        await addDoc(collection(db, "conversa", selectedConversation.id, "mensagens"), {
+          senderId: user.uid,
+          text: finalMessage,
+          createdAt: serverTimestamp(),
+        });
 
-      await updateDoc(doc(db, "conversa", selectedConversation.id), {
-        adoptionRequestActive: false,
-        finalizedAt: serverTimestamp(),
-        finalizedBy: user.uid,
-        lastMessage: finalMessage,
-        lastMessageAt: serverTimestamp(),
-        lastMessageSenderId: user.uid,
-        visibleToInterested: true,
-      });
+        await updateDoc(doc(db, "conversa", selectedConversation.id), {
+          adoptionRequestActive: false,
+          finalizedAt: serverTimestamp(),
+          finalizedBy: user.uid,
+          lastMessage: finalMessage,
+          lastMessageAt: serverTimestamp(),
+          lastMessageSenderId: user.uid,
+          visibleToInterested: true,
+        });
 
-      await notifyAdoptionFinished({
-        recipientUserId: selectedConversation.otherUserId,
-        senderUserId: user.uid,
-        senderName: "Meau",
-        conversationId: selectedConversation.id,
-        petName: selectedConversation.petName,
-      });
+        await notifyAdoptionFinished({
+          recipientUserId: selectedConversation.otherUserId,
+          senderUserId: user.uid,
+          senderName: "Meau",
+          conversationId: selectedConversation.id,
+          petName: selectedConversation.petName,
+        });
 
-      setConversations((currentConversations) => (
-        currentConversations.map((conversation) => (
-          conversation.id === selectedConversation.id
-            ? {
-                ...conversation,
-                isProcessActive: false,
-                lastMessage: finalMessage,
-                lastMessageTime: new Date().toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-                lastMessageSenderId: user.uid,
-                hasUnread: false,
-              }
-            : conversation
-        ))
-      ));
-      setActiveTab("finished");
-      setIsFinalizeMode(false);
-      setSelectedConversationId(null);
-    } catch (error) {
-      console.error("Erro ao finalizar processo:", error);
-      Alert.alert("Erro", "Não foi possível finalizar o processo agora.");
-    } finally {
-      setIsFinalizing(false);
-    }
-  }, [isFinalizing, user?.uid]);
+        setConversations((currentConversations) =>
+          currentConversations.map((conversation) =>
+            conversation.id === selectedConversation.id
+              ? {
+                  ...conversation,
+                  isProcessActive: false,
+                  lastMessage: finalMessage,
+                  lastMessageTime: new Date().toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                  lastMessageSenderId: user.uid,
+                  hasUnread: false,
+                }
+              : conversation,
+          ),
+        );
+        setActiveTab("finished");
+        setIsFinalizeMode(false);
+        setSelectedConversationId(null);
+      } catch (error) {
+        console.error("Erro ao finalizar processo:", error);
+        Alert.alert("Erro", "Não foi possível finalizar o processo agora.");
+      } finally {
+        setIsFinalizing(false);
+      }
+    },
+    [isFinalizing, user?.uid],
+  );
 
   const handleConfirmFinalize = useCallback(() => {
     if (!selectedConversationId || isFinalizing) {
       return;
     }
 
-    const selectedConversation = conversations.find(
-      (conversation) => conversation.id === selectedConversationId,
-    );
+    const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId);
 
     if (!selectedConversation) {
       return;
     }
 
     if (Platform.OS === "web") {
-      const confirmed = window.confirm(
-        `Finalizar o processo de adoção de ${selectedConversation.petName}?`,
-      );
+      const confirmed = window.confirm(`Finalizar o processo de adoção de ${selectedConversation.petName}?`);
 
       if (confirmed) {
         void finalizeSelectedConversation(selectedConversation);
@@ -310,20 +284,16 @@ export default function ChatListScreen() {
       return;
     }
 
-    Alert.alert(
-      "Finalizar processo",
-      `Finalizar o processo de adoção de ${selectedConversation.petName}?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Finalizar",
-          style: "destructive",
-          onPress: () => {
-            void finalizeSelectedConversation(selectedConversation);
-          },
+    Alert.alert("Finalizar processo", `Finalizar o processo de adoção de ${selectedConversation.petName}?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Finalizar",
+        style: "destructive",
+        onPress: () => {
+          void finalizeSelectedConversation(selectedConversation);
         },
-      ],
-    );
+      },
+    ]);
   }, [conversations, finalizeSelectedConversation, isFinalizing, selectedConversationId]);
 
   const loadConversations = useCallback(
@@ -339,27 +309,15 @@ export default function ChatListScreen() {
       try {
         setIsLoading(true);
 
-        const ownerQuery = query(
-          collection(db, "conversa"),
-          where("proprietarioId", "==", user.uid),
-        );
-        const interestedQuery = query(
-          collection(db, "conversa"),
-          where("interessadoUserId", "==", user.uid),
-        );
+        const ownerQuery = query(collection(db, "conversa"), where("proprietarioId", "==", user.uid));
+        const interestedQuery = query(collection(db, "conversa"), where("interessadoUserId", "==", user.uid));
 
-        const [ownerSnapshot, interestedSnapshot] = await Promise.all([
-          getDocs(ownerQuery),
-          getDocs(interestedQuery),
-        ]);
+        const [ownerSnapshot, interestedSnapshot] = await Promise.all([getDocs(ownerQuery), getDocs(interestedQuery)]);
 
         const conversationMap = new Map<string, ReturnType<typeof normalizeConversation>>();
 
         [...ownerSnapshot.docs, ...interestedSnapshot.docs].forEach((snapshot) => {
-          const normalized = normalizeConversation(
-            snapshot.id,
-            snapshot.data() as ChatConversationDocument,
-          );
+          const normalized = normalizeConversation(snapshot.id, snapshot.data() as ChatConversationDocument);
 
           if (normalized) {
             conversationMap.set(snapshot.id, normalized);
@@ -368,10 +326,7 @@ export default function ChatListScreen() {
 
         const normalizedConversations = [...conversationMap.values()]
           .filter((item): item is NonNullable<typeof item> => Boolean(item))
-          .filter((conversation) => (
-            conversation.proprietarioId === user.uid
-            || conversation.visibleToInterested
-          ))
+          .filter((conversation) => conversation.proprietarioId === user.uid || conversation.visibleToInterested)
           .sort((left, right) => {
             const leftTime = left.lastMessageAt?.toMillis() ?? 0;
             const rightTime = right.lastMessageAt?.toMillis() ?? 0;
@@ -381,11 +336,9 @@ export default function ChatListScreen() {
         const animalIds = [...new Set(normalizedConversations.map((conversation) => conversation.animalId))];
         const otherUserIds = [
           ...new Set(
-            normalizedConversations.map((conversation) => (
-              conversation.proprietarioId === user.uid
-                ? conversation.interessadoUserId
-                : conversation.proprietarioId
-            )),
+            normalizedConversations.map((conversation) =>
+              conversation.proprietarioId === user.uid ? conversation.interessadoUserId : conversation.proprietarioId,
+            ),
           ),
         ];
 
@@ -411,17 +364,16 @@ export default function ChatListScreen() {
         const animalsById = new Map(animalEntries);
         const usersById = new Map(userEntries);
         const nextConversations = normalizedConversations.map((conversation) => {
-          const otherUserId = conversation.proprietarioId === user.uid
-            ? conversation.interessadoUserId
-            : conversation.proprietarioId;
+          const otherUserId =
+            conversation.proprietarioId === user.uid ? conversation.interessadoUserId : conversation.proprietarioId;
           const pet = animalsById.get(conversation.animalId);
           const otherUserProfile = usersById.get(otherUserId) ?? null;
           const fallbackName = resolveConversationFallbackName(conversation, otherUserId);
-          const lastReadAt = conversation.proprietarioId === user.uid
-            ? conversation.ownerLastReadAt
-            : conversation.interestedLastReadAt;
-          const hasUnread = conversation.lastMessageSenderId !== user.uid
-            && (conversation.lastMessageAt?.toMillis() ?? 0) > (lastReadAt?.toMillis() ?? 0);
+          const lastReadAt =
+            conversation.proprietarioId === user.uid ? conversation.ownerLastReadAt : conversation.interestedLastReadAt;
+          const hasUnread =
+            conversation.lastMessageSenderId !== user.uid &&
+            (conversation.lastMessageAt?.toMillis() ?? 0) > (lastReadAt?.toMillis() ?? 0);
 
           return {
             id: conversation.id,
@@ -509,14 +461,9 @@ export default function ChatListScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Ver conversas: ${tab.label}`}
                 onPress={() => handleChangeTab(tab.key)}
-                style={[
-                  styles.tabButton,
-                  isActive && styles.tabButtonActive,
-                ]}
+                style={[styles.tabButton, isActive && styles.tabButtonActive]}
               >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab.label}
-                </Text>
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{tab.label}</Text>
               </Pressable>
             );
           })}
@@ -524,9 +471,7 @@ export default function ChatListScreen() {
 
         {isFinalizeMode ? (
           <View style={styles.selectionNotice}>
-            <Text style={styles.selectionNoticeText}>
-              Selecione uma conversa ativa para finalizar o processo.
-            </Text>
+            <Text style={styles.selectionNoticeText}>Selecione uma conversa ativa para finalizar o processo.</Text>
           </View>
         ) : null}
 
@@ -543,7 +488,7 @@ export default function ChatListScreen() {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={(
+          ListEmptyComponent={
             <View style={styles.feedbackContainer}>
               {isLoading ? (
                 <>
@@ -552,13 +497,11 @@ export default function ChatListScreen() {
                 </>
               ) : (
                 <Text style={styles.feedbackText}>
-                  {activeTab === "finished"
-                    ? "Nenhum processo finalizado."
-                    : "Nenhuma conversa encontrada."}
+                  {activeTab === "finished" ? "Nenhum processo finalizado." : "Nenhuma conversa encontrada."}
                 </Text>
               )}
             </View>
-          )}
+          }
         />
 
         <View style={styles.footer}>
@@ -568,10 +511,7 @@ export default function ChatListScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Cancelar finalização"
                 onPress={handleFinalizeProcess}
-                style={({ pressed }) => [
-                  styles.footerSecondaryButton,
-                  pressed && styles.footerButtonPressed,
-                ]}
+                style={({ pressed }) => [styles.footerSecondaryButton, pressed && styles.footerButtonPressed]}
               >
                 <Text style={styles.footerButtonText}>CANCELAR</Text>
               </Pressable>
@@ -587,9 +527,7 @@ export default function ChatListScreen() {
                   pressed && styles.footerButtonPressed,
                 ]}
               >
-                <Text style={styles.footerButtonText}>
-                  {isFinalizing ? "FINALIZANDO..." : "FINALIZAR"}
-                </Text>
+                <Text style={styles.footerButtonText}>{isFinalizing ? "FINALIZANDO..." : "FINALIZAR"}</Text>
               </Pressable>
             </View>
           ) : (
@@ -597,10 +535,7 @@ export default function ChatListScreen() {
               accessibilityRole="button"
               accessibilityLabel="Finalizar um processo"
               onPress={handleFinalizeProcess}
-              style={({ pressed }) => [
-                styles.footerButtonWide,
-                pressed && styles.footerButtonPressed,
-              ]}
+              style={({ pressed }) => [styles.footerButtonWide, pressed && styles.footerButtonPressed]}
             >
               <Text style={styles.footerButtonText}>FINALIZAR UM PROCESSO</Text>
             </Pressable>
