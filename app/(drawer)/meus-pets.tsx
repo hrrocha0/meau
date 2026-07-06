@@ -5,14 +5,17 @@ import { collection, doc, getDoc, getDocs, query, updateDoc, where } from "fireb
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Image,
     ListRenderItemInfo,
+    Modal,
     NativeScrollEvent,
     NativeSyntheticEvent,
     Pressable,
     StyleSheet,
     Text,
+    TextInput,
     useWindowDimensions,
     View,
 } from "react-native";
@@ -71,6 +74,12 @@ export default function MeusPetsScreen() {
     const { width } = useWindowDimensions();
     const [pets, setPets] = useState<Pet[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [editingPet, setEditingPet] = useState<Pet | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editSex, setEditSex] = useState("");
+    const [editAge, setEditAge] = useState("");
+    const [editSize, setEditSize] = useState("");
+    const [isSavingPet, setIsSavingPet] = useState(false);
     const { user } = useAuth();
 
     const cardWidth = useMemo(() => {
@@ -82,10 +91,18 @@ export default function MeusPetsScreen() {
         let isActive = true;
 
         async function loadPets() {
+            if (!user?.uid) {
+                if (isActive) {
+                    setPets([]);
+                    setIsLoading(false);
+                }
+                return;
+            }
+
             try {
                 setIsLoading(true);
 
-                const animalsQuery = query(collection(db, "animals"), where("usuarioId", "==", user?.uid));
+                const animalsQuery = query(collection(db, "animals"), where("usuarioId", "==", user.uid));
                 const animalsSnapshot = await getDocs(animalsQuery);
                 const animals = animalsSnapshot.docs.map((snapshot) => ({
                     id: snapshot.id,
@@ -154,7 +171,7 @@ export default function MeusPetsScreen() {
         return () => {
             isActive = false;
         };
-    }, []);
+    }, [user?.uid]);
 
     const handleOpenDrawer = useCallback(() => {
         (navigation as unknown as DrawerNavigation).openDrawer();
@@ -194,6 +211,69 @@ export default function MeusPetsScreen() {
         }
     }, []);
 
+    const handleOpenEditPet = useCallback((pet: Pet) => {
+        setEditingPet(pet);
+        setEditName(pet.nome);
+        setEditSex(pet.sexo);
+        setEditAge(pet.idade);
+        setEditSize(pet.porte);
+    }, []);
+
+    const handleCloseEditPet = useCallback(() => {
+        if (isSavingPet) {
+            return;
+        }
+
+        setEditingPet(null);
+    }, [isSavingPet]);
+
+    const handleSavePet = useCallback(async () => {
+        if (!editingPet || isSavingPet) {
+            return;
+        }
+
+        const nextName = editName.trim();
+        const nextSex = editSex.trim();
+        const nextAge = editAge.trim();
+        const nextSize = editSize.trim();
+
+        if (!nextName || !nextSex || !nextAge || !nextSize) {
+            Alert.alert("Dados incompletos", "Preencha nome, sexo, idade e porte antes de salvar.");
+            return;
+        }
+
+        try {
+            setIsSavingPet(true);
+            await updateDoc(doc(db, "animals", editingPet.id), {
+                nome: nextName,
+                sexo: nextSex,
+                faixaEtaria: nextAge,
+                porte: nextSize,
+            });
+
+            setPets((currentPets) =>
+                currentPets.map((pet) =>
+                    pet.id === editingPet.id
+                        ? {
+                            ...pet,
+                            nome: nextName,
+                            sexo: nextSex.toUpperCase(),
+                            idade: nextAge.toUpperCase(),
+                            porte: nextSize.toUpperCase(),
+                        }
+                        : pet
+                )
+            );
+            setEditingPet(null);
+            Alert.alert("Pet atualizado", "Os dados do pet foram salvos.");
+        } catch (error) {
+            console.error("Erro ao atualizar pet:", error);
+            Alert.alert("Erro", "Não foi possível atualizar o pet agora.");
+        } finally {
+            setIsSavingPet(false);
+        }
+    }, [editAge, editName, editSex, editSize, editingPet, isSavingPet]);
+
     const renderItem = useCallback(
         ({ item }: ListRenderItemInfo<Pet>) => (
             <PetCard
@@ -201,9 +281,10 @@ export default function MeusPetsScreen() {
                 width={cardWidth}
                 onPress={handleOpenPet}
                 onToggleHidden={handleToggleHidden}
+                onEdit={handleOpenEditPet}
             />
         ),
-        [cardWidth, handleOpenPet, handleToggleHidden],
+        [cardWidth, handleOpenEditPet, handleOpenPet, handleToggleHidden],
     );
 
     const keyExtractor = useCallback((item: Pet) => item.id, []);
@@ -264,6 +345,75 @@ export default function MeusPetsScreen() {
                         )
                     }
                 />
+
+                <Modal
+                    visible={!!editingPet}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={handleCloseEditPet}
+                >
+                    <Pressable style={styles.modalBackdrop} onPress={handleCloseEditPet}>
+                        <Pressable style={styles.modalCard}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Editar pet</Text>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Fechar edição"
+                                    onPress={handleCloseEditPet}
+                                    style={styles.modalIconButton}
+                                >
+                                    <MaterialIcons name="close" size={22} color="#434343" />
+                                </Pressable>
+                            </View>
+
+                            <View style={styles.editForm}>
+                                <TextInput
+                                    style={styles.editInput}
+                                    placeholder="Nome"
+                                    placeholderTextColor="#999999"
+                                    value={editName}
+                                    onChangeText={setEditName}
+                                />
+                                <TextInput
+                                    style={styles.editInput}
+                                    placeholder="Sexo"
+                                    placeholderTextColor="#999999"
+                                    value={editSex}
+                                    onChangeText={setEditSex}
+                                />
+                                <TextInput
+                                    style={styles.editInput}
+                                    placeholder="Idade"
+                                    placeholderTextColor="#999999"
+                                    value={editAge}
+                                    onChangeText={setEditAge}
+                                />
+                                <TextInput
+                                    style={styles.editInput}
+                                    placeholder="Porte"
+                                    placeholderTextColor="#999999"
+                                    value={editSize}
+                                    onChangeText={setEditSize}
+                                />
+                            </View>
+
+                            <View style={styles.modalActions}>
+                                <Pressable style={styles.secondaryButton} onPress={handleCloseEditPet}>
+                                    <Text style={styles.secondaryButtonText}>CANCELAR</Text>
+                                </Pressable>
+                                <Pressable
+                                    disabled={isSavingPet}
+                                    style={[styles.primaryButton, isSavingPet ? styles.buttonDisabled : null]}
+                                    onPress={handleSavePet}
+                                >
+                                    <Text style={styles.primaryButtonText}>
+                                        {isSavingPet ? "SALVANDO..." : "SALVAR"}
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        </Pressable>
+                    </Pressable>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -274,9 +424,10 @@ type PetCardProps = {
     width: number;
     onPress: (pet: Pet) => void;
     onToggleHidden: (pet: Pet) => Promise<void>;
+    onEdit: (pet: Pet) => void;
 };
 
-const PetCard = memo(function PetCard({ pet, width, onPress, onToggleHidden }: PetCardProps) {
+const PetCard = memo(function PetCard({ pet, width, onPress, onToggleHidden, onEdit }: PetCardProps) {
     const imageListRef = useRef<FlatList<string>>(null);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const imageUris = pet.imagemUris.length > 0
@@ -315,6 +466,16 @@ const PetCard = memo(function PetCard({ pet, width, onPress, onToggleHidden }: P
                     style={styles.cardTitleButton}
                 >
                     <Text style={styles.cardTitle}>{pet.nome}</Text>
+                </Pressable>
+
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Editar ${pet.nome}`}
+                    hitSlop={8}
+                    onPress={() => onEdit(pet)}
+                    style={styles.favoriteButton}
+                >
+                    <MaterialIcons name="edit" size={22} color="#434343" />
                 </Pressable>
 
                 <Pressable
@@ -590,5 +751,78 @@ const styles = StyleSheet.create({
         color: "#434343",
         textAlign: "center",
         fontWeight: "400",
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+        justifyContent: "center",
+        padding: 20,
+    },
+    modalCard: {
+        borderRadius: 8,
+        backgroundColor: "#FFFFFF",
+        padding: 16,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontFamily: "Roboto_500Medium",
+        fontSize: 18,
+        color: "#434343",
+    },
+    modalIconButton: {
+        width: 36,
+        height: 36,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    editForm: {
+        gap: 12,
+    },
+    editInput: {
+        minHeight: 44,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E6E7E8",
+        fontFamily: "Roboto_400Regular",
+        fontSize: 15,
+        color: "#434343",
+        paddingHorizontal: 4,
+    },
+    modalActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 12,
+        marginTop: 24,
+    },
+    secondaryButton: {
+        minHeight: 44,
+        paddingHorizontal: 14,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    secondaryButtonText: {
+        fontFamily: "Roboto_500Medium",
+        fontSize: 13,
+        color: "#757575",
+    },
+    primaryButton: {
+        minHeight: 44,
+        minWidth: 96,
+        backgroundColor: "#88C9BF",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 16,
+    },
+    primaryButtonText: {
+        fontFamily: "Roboto_500Medium",
+        fontSize: 13,
+        color: "#434343",
+    },
+    buttonDisabled: {
+        opacity: 0.65,
     },
 });

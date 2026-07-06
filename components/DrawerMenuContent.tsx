@@ -109,13 +109,13 @@ export default function DrawerMenuContent({
           onPress={() => toggleSection("atalhos")}
         >
           {isLoggedIn ? (
-            <MenuItem label="Cadastrar um pet" onPress={() => goTo("/cadastro-aviso")} />
+            <MenuItem label="Cadastrar um pet" onPress={() => goTo("/register-animal")} />
           ) : (
             <MenuItem label="Cadastrar um pet" onPress={() => goTo("/login")} />
           )}
           <MenuItem label="Adotar um pet" onPress={() => goTo("/adotar")} />
-          <MenuItem label="Ajudar um pet" onPress={() => goTo("/(drawer)")} />
-          <MenuItem label="Apadrinhar um pet" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Ajudar um pet" onPress={() => goTo("/em-breve")} />
+          <MenuItem label="Apadrinhar um pet" onPress={() => goTo("/em-breve")} />
         </DropdownSection>
 
         <DropdownSection
@@ -125,10 +125,10 @@ export default function DrawerMenuContent({
           isOpen={openSections.informacoes}
           onPress={() => toggleSection("informacoes")}
         >
-          <MenuItem label="Dicas" onPress={() => goTo("/(drawer)")} />
-          <MenuItem label="Eventos" onPress={() => goTo("/(drawer)")} />
-          <MenuItem label="Legislação" onPress={() => goTo("/(drawer)")} />
-          <MenuItem label="Termo de adoção" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Dicas" onPress={() => goTo("/em-breve")} />
+          <MenuItem label="Eventos" onPress={() => goTo("/em-breve")} />
+          <MenuItem label="Legislação" onPress={() => goTo("/em-breve")} />
+          <MenuItem label="Termo de adoção" onPress={() => goTo("/em-breve")} />
         </DropdownSection>
 
         <DropdownSection
@@ -138,7 +138,7 @@ export default function DrawerMenuContent({
           isOpen={openSections.configuracoes}
           onPress={() => toggleSection("configuracoes")}
         >
-          <MenuItem label="Privacidade" onPress={() => goTo("/(drawer)")} />
+          <MenuItem label="Privacidade" onPress={() => goTo("/em-breve")} />
         </DropdownSection>
 
         {isLoggedIn ? (

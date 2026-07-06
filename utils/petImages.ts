@@ -1,5 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 
 export const MAX_PET_PHOTOS = 5;
 export const PET_PHOTO_WIDTH = 344;
@@ -54,16 +54,18 @@ async function normalizeAsset(asset: ImagePicker.ImagePickerAsset): Promise<PetP
   const sourceWidth = asset.width ?? PET_PHOTO_WIDTH;
   const sourceHeight = asset.height ?? PET_PHOTO_HEIGHT;
   const crop = getCropArea(sourceWidth, sourceHeight);
-  const imageRef = await ImageManipulator
-    .manipulate(asset.uri)
-    .crop(crop)
-    .resize({ width: PET_PHOTO_WIDTH, height: PET_PHOTO_HEIGHT })
-    .renderAsync();
-  const resizedImage = await imageRef.saveAsync({
-    base64: true,
-    compress: PET_PHOTO_QUALITY,
-    format: SaveFormat.JPEG,
-  });
+  const resizedImage = await manipulateAsync(
+    asset.uri,
+    [
+      { crop },
+      { resize: { width: PET_PHOTO_WIDTH, height: PET_PHOTO_HEIGHT } },
+    ],
+    {
+      base64: true,
+      compress: PET_PHOTO_QUALITY,
+      format: SaveFormat.JPEG,
+    },
+  );
 
   if (!resizedImage.base64) {
     throw new Error("Não foi possível converter a foto do animal para base64.");

@@ -435,18 +435,19 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#cfe9e5",
-    height: 56,
+    height: 64,
   },
   headerLeftContainer: {
-    marginLeft: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+    marginLeft: 12,
+    height: 44,
+    justifyContent: "center",
   },
   headerTitle: {
-    marginLeft: 24,
+    marginLeft: 8,
     color: "#434343",
     fontFamily: "Roboto_500Medium",
     fontSize: 20,
+    lineHeight: 24,
   },
   backButton: {
     width: 24,

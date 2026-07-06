@@ -18,6 +18,12 @@ export default function Index() {
   const router = useRouter();
   const navigation = useNavigation();
   const { profile, user } = useAuth();
+  const displayName =
+    profile?.username?.trim()
+    || profile?.name?.trim()
+    || user?.displayName?.trim()
+    || user?.email?.split("@")[0]
+    || "usuário";
 
   // Implementação da tela
 
@@ -40,7 +46,7 @@ export default function Index() {
         <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
           <ScrollView contentContainerStyle={{ alignItems: "center" }}>
             <View style={{ marginTop: 8 }}>
-              <Text style={styles.text0}>Olá, {profile?.username ?? user?.email?.split("@")[0] ?? "usuário"}!</Text>
+              <Text style={styles.text0}>Olá, {displayName}!</Text>
             </View>
             <View style={{ marginTop: 52 }}>
               <Text style={styles.text1}>

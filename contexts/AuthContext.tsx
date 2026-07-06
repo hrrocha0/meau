@@ -37,6 +37,7 @@ type AuthContextValue = {
   isProfileLoading: boolean;
   user: User | null;
   profile: UserProfile | null;
+  refreshProfile: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -48,6 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthResolved, setIsAuthResolved] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [registeredPushToken, setRegisteredPushToken] = useState<string | null>(null);
+
+  async function loadProfile(firebaseUser: User) {
+    const profileRef = doc(db, "users", firebaseUser.uid);
+    const profileSnapshot = await getDoc(profileRef);
+
+    if (profileSnapshot.exists()) {
+      setProfile(profileSnapshot.data() as UserProfile);
+    } else {
+      setProfile(null);
+    }
+  }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -64,14 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsProfileLoading(true);
 
       try {
-        const profileRef = doc(db, "users", firebaseUser.uid);
-        const profileSnapshot = await getDoc(profileRef);
-
-        if (profileSnapshot.exists()) {
-          setProfile(profileSnapshot.data() as UserProfile);
-        } else {
-          setProfile(null);
-        }
+        await loadProfile(firebaseUser);
       } catch (error) {
         console.error("Erro ao carregar perfil do usuário:", error);
         setProfile(null);
@@ -101,6 +106,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   }
 
+  async function refreshProfile() {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    setIsProfileLoading(true);
+
+    try {
+      await loadProfile(user);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -108,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isProfileLoading,
         user,
         profile,
+        refreshProfile,
         logout,
       }}
     >

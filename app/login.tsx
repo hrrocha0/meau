@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import DrawerMenuContent from "../components/DrawerMenuContent";
 import { auth } from "../firebaseConfig";
 import * as Notifications from "expo-notifications";
@@ -45,13 +45,15 @@ export default function Login() {
       const userCredential = await signInWithEmailAndPassword(auth, email, senha);
       console.log("Deu certo!", userCredential.user);
 
-      Notifications.scheduleNotificationAsync({
-        content: {
+      if (Platform.OS !== "web") {
+        await Notifications.scheduleNotificationAsync({
+          content: {
             title: "Sucesso!",
-            body: `Seja bem-vindo(a) de volta!`,
-        },
-        trigger: null,
-      });
+            body: "Seja bem-vindo(a) de volta!",
+          },
+          trigger: null,
+        });
+      }
 
       router.replace("/(drawer)");
     } catch (error: any) {

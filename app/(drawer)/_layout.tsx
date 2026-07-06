@@ -34,6 +34,30 @@ export default function DrawerLayout() {
                 }}
             />
             <Drawer.Screen
+                name="meu-perfil"
+                options={{
+                    drawerItemStyle: { display: "none" },
+                }}
+            />
+            <Drawer.Screen
+                name="meus-pets"
+                options={{
+                    drawerItemStyle: { display: "none" },
+                }}
+            />
+            <Drawer.Screen
+                name="favoritos"
+                options={{
+                    drawerItemStyle: { display: "none" },
+                }}
+            />
+            <Drawer.Screen
+                name="em-breve"
+                options={{
+                    drawerItemStyle: { display: "none" },
+                }}
+            />
+            <Drawer.Screen
                 name="mapa-global"
                 options={{
                     drawerLabel: "Mapa de Animais",

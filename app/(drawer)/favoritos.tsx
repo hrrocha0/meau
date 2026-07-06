@@ -17,10 +17,10 @@ import { router, useFocusEffect, useNavigation } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
+import { useAuth } from "../../contexts/AuthContext";
 import { db } from "../../firebaseConfig";
 import { decodeBase64Image } from "../../utils/petImages";
-import { useAuth } from "../../contexts/AuthContext";
 
 type Pet = {
   id: string;
@@ -31,7 +31,7 @@ type Pet = {
   localizacao: string;
   imagemUris: string[];
   imagemUri: string;
-  favorito?: boolean;
+  favorito: boolean;
 };
 
 type AnimalPhotoDocument = {
@@ -66,159 +66,152 @@ type DrawerNavigation = {
   openDrawer: () => void;
 };
 
-export default function AdotarScreen() {
+export default function FavoritosScreen() {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
+  const { user } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
 
   const cardWidth = useMemo(() => {
     const availableWidth = width - CARD_GAP * 2;
     return Math.min(availableWidth, CARD_MAX_WIDTH);
   }, [width]);
 
-  const loadPets = useCallback(async (isActive: () => boolean) => {
-      try {
-        setIsLoading(true);
+  const loadFavoritePets = useCallback(async (isActive: () => boolean) => {
+    if (!user?.uid) {
+      if (isActive()) {
+        setPets([]);
+        setIsLoading(false);
+      }
+      return;
+    }
 
-        const animalsQuery = query(collection(db, "animals"), orderBy("criadoEm", "desc"));
-        const animalsSnapshot = await getDocs(animalsQuery);
-        const animals = animalsSnapshot.docs.map((snapshot) => ({
-          id: snapshot.id,
-          ...(snapshot.data() as AnimalDocument),
-        }));
+    try {
+      setIsLoading(true);
 
-        const [ownerEntries, favoriteSnapshot] = await Promise.all([
-          Promise.all(
-            ([...new Set(animals.map((animal) => animal.usuarioId).filter(Boolean))] as string[])
-              .map(async (ownerId) => {
-                const ownerSnapshot = await getDoc(doc(db, "users", ownerId));
-                return [ownerId, ownerSnapshot.exists() ? (ownerSnapshot.data() as UserProfileDocument) : null] as const;
-              })
-          ),
-          user?.uid
-            ? getDocs(collection(db, "users", user.uid, "favorites")).catch(() => null)
-            : Promise.resolve(null),
-        ]);
+      const favoritesQuery = query(
+        collection(db, "users", user.uid, "favorites"),
+        orderBy("createdAt", "desc"),
+      );
+      const favoritesSnapshot = await getDocs(favoritesQuery);
+      const favoriteIds = favoritesSnapshot.docs.map((favoriteDoc) => favoriteDoc.id);
 
-        const ownersById = new Map(ownerEntries);
-        const favoriteIds = new Set(favoriteSnapshot?.docs.map((favoriteDoc) => favoriteDoc.id) ?? []);
-        const nextPets = animals
-          .filter((animal) => animal.oculto !== true)
-          .map((animal) => {
-          const ownerProfile = animal.usuarioId ? ownersById.get(animal.usuarioId) : null;
-          const city = ownerProfile?.city?.trim();
-          const state = ownerProfile?.state?.trim();
-          const localizacao = city && state
-            ? `${city.toUpperCase()} - ${state.toUpperCase()}`
-            : "LOCALIZAÇÃO NÃO INFORMADA";
-          const imageUrisFromPhotos = (animal.fotos ?? [])
-            .map((photo) => {
-              if (!photo?.base64) {
-                return null;
-              }
-
-              return decodeBase64Image(photo.base64, photo.mimeType ?? "image/jpeg");
-            })
-            .filter((photoUri): photoUri is string => Boolean(photoUri));
-          const imagemUris = imageUrisFromPhotos.length > 0
-            ? imageUrisFromPhotos
-            : (animal.fotoUrl ? [animal.fotoUrl] : []);
-
-          return {
-            id: animal.id,
-            nome: animal.nome?.trim() || "Sem nome",
-            sexo: (animal.sexo || "Não informado").toUpperCase(),
-            idade: (animal.faixaEtaria || "Não informada").toUpperCase(),
-            porte: (animal.porte || "Não informado").toUpperCase(),
-            localizacao,
-            imagemUris,
-            imagemUri: imagemUris[0] || "",
-            favorito: favoriteIds.has(animal.id),
-          };
-        });
-
-        if (isActive()) {
-          setPets(nextPets);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar animais para adoção:", error);
+      if (favoriteIds.length === 0) {
         if (isActive()) {
           setPets([]);
         }
-      } finally {
-        if (isActive()) {
-          setIsLoading(false);
-        }
+        return;
       }
+
+      const animalEntries = await Promise.all(
+        favoriteIds.map(async (animalId) => {
+          const animalSnapshot = await getDoc(doc(db, "animals", animalId));
+
+          if (!animalSnapshot.exists()) {
+            return null;
+          }
+
+          return {
+            id: animalSnapshot.id,
+            ...(animalSnapshot.data() as AnimalDocument),
+          };
+        }),
+      );
+      const animals = animalEntries.filter((animal): animal is AnimalDocument & { id: string } => (
+        Boolean(animal) && animal?.oculto !== true
+      ));
+
+      const ownerIds = [...new Set(animals.map((animal) => animal.usuarioId).filter(Boolean))] as string[];
+      const ownerEntries = await Promise.all(
+        ownerIds.map(async (ownerId) => {
+          const ownerSnapshot = await getDoc(doc(db, "users", ownerId));
+          return [ownerId, ownerSnapshot.exists() ? (ownerSnapshot.data() as UserProfileDocument) : null] as const;
+        }),
+      );
+
+      const ownersById = new Map(ownerEntries);
+      const nextPets = animals.map((animal) => {
+        const ownerProfile = animal.usuarioId ? ownersById.get(animal.usuarioId) : null;
+        const city = ownerProfile?.city?.trim();
+        const state = ownerProfile?.state?.trim();
+        const localizacao = city && state
+          ? `${city.toUpperCase()} - ${state.toUpperCase()}`
+          : "LOCALIZAÇÃO NÃO INFORMADA";
+        const imageUrisFromPhotos = (animal.fotos ?? [])
+          .map((photo) => {
+            if (!photo?.base64) {
+              return null;
+            }
+
+            return decodeBase64Image(photo.base64, photo.mimeType ?? "image/jpeg");
+          })
+          .filter((photoUri): photoUri is string => Boolean(photoUri));
+        const imagemUris = imageUrisFromPhotos.length > 0
+          ? imageUrisFromPhotos
+          : (animal.fotoUrl ? [animal.fotoUrl] : []);
+
+        return {
+          id: animal.id,
+          nome: animal.nome?.trim() || "Sem nome",
+          sexo: (animal.sexo || "Não informado").toUpperCase(),
+          idade: (animal.faixaEtaria || "Não informada").toUpperCase(),
+          porte: (animal.porte || "Não informado").toUpperCase(),
+          localizacao,
+          imagemUris,
+          imagemUri: imagemUris[0] || "",
+          favorito: true,
+        };
+      });
+
+      if (isActive()) {
+        setPets(nextPets);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar pets favoritos:", error);
+      if (isActive()) {
+        setPets([]);
+      }
+    } finally {
+      if (isActive()) {
+        setIsLoading(false);
+      }
+    }
   }, [user?.uid]);
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
 
-      void loadPets(() => isActive);
+      void loadFavoritePets(() => isActive);
 
       return () => {
         isActive = false;
       };
-    }, [loadPets]),
+    }, [loadFavoritePets]),
   );
 
   const handleOpenDrawer = useCallback(() => {
     (navigation as unknown as DrawerNavigation).openDrawer();
   }, [navigation]);
 
-  const handleSearch = useCallback(() => {
-    // Ajuste a rota conforme a sua estrutura
-    console.log("Abrir busca");
-  }, []);
-
   const handleOpenPet = useCallback((pet: Pet) => {
     router.push(`/animal/${pet.id}` as any);
   }, []);
 
-  const handleToggleFavorite = useCallback(async (pet: Pet) => {
+  const handleRemoveFavorite = useCallback(async (pet: Pet) => {
     if (!user?.uid) {
-      Alert.alert("Login necessário", "Entre na sua conta para favoritar pets.", [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Entrar", onPress: () => router.push("/login") },
-      ]);
       return;
     }
 
-    const nextFavorite = !(pet.favorito ?? false);
-
-    setPets((currentPets) =>
-      currentPets.map((currentPet) =>
-        currentPet.id === pet.id
-          ? { ...currentPet, favorito: nextFavorite }
-          : currentPet
-      )
-    );
+    setPets((currentPets) => currentPets.filter((currentPet) => currentPet.id !== pet.id));
 
     try {
-      const favoriteRef = doc(db, "users", user.uid, "favorites", pet.id);
-
-      if (nextFavorite) {
-        await setDoc(favoriteRef, {
-          animalId: pet.id,
-          createdAt: serverTimestamp(),
-        });
-      } else {
-        await deleteDoc(favoriteRef);
-      }
+      await deleteDoc(doc(db, "users", user.uid, "favorites", pet.id));
     } catch (error) {
-      console.error("Erro ao atualizar favorito:", error);
-      setPets((currentPets) =>
-        currentPets.map((currentPet) =>
-          currentPet.id === pet.id
-            ? { ...currentPet, favorito: pet.favorito ?? false }
-            : currentPet
-        )
-      );
-      Alert.alert("Erro", "Não foi possível atualizar os favoritos agora.");
+      console.error("Erro ao remover favorito:", error);
+      setPets((currentPets) => [pet, ...currentPets]);
+      Alert.alert("Erro", "Não foi possível remover este pet dos favoritos agora.");
     }
   }, [user?.uid]);
 
@@ -228,10 +221,10 @@ export default function AdotarScreen() {
         pet={item}
         width={cardWidth}
         onPress={handleOpenPet}
-        onToggleFavorite={handleToggleFavorite}
+        onRemoveFavorite={handleRemoveFavorite}
       />
     ),
-    [cardWidth, handleOpenPet, handleToggleFavorite],
+    [cardWidth, handleOpenPet, handleRemoveFavorite],
   );
 
   const keyExtractor = useCallback((item: Pet) => item.id, []);
@@ -240,6 +233,10 @@ export default function AdotarScreen() {
     () => <View style={{ height: CARD_GAP }} />,
     [],
   );
+
+  const emptyText = user
+    ? "Nenhum pet favorito ainda."
+    : "Entre na sua conta para ver seus favoritos.";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -258,17 +255,17 @@ export default function AdotarScreen() {
           </Pressable>
 
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Adotar</Text>
+            <Text style={styles.headerTitle}>Favoritos</Text>
           </View>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Buscar animais"
+            accessibilityLabel="Ir para adoção"
             hitSlop={8}
-            onPress={handleSearch}
+            onPress={() => router.push("/adotar")}
             style={styles.headerIconButton}
           >
-            <MaterialIcons name="search" size={24} color="#434343" />
+            <MaterialIcons name="pets" size={24} color="#434343" />
           </Pressable>
         </View>
 
@@ -283,11 +280,16 @@ export default function AdotarScreen() {
             isLoading ? (
               <View style={styles.feedbackContainer}>
                 <ActivityIndicator size="small" color="#434343" />
-                <Text style={styles.feedbackText}>Carregando animais...</Text>
+                <Text style={styles.feedbackText}>Carregando favoritos...</Text>
               </View>
             ) : (
               <View style={styles.feedbackContainer}>
-                <Text style={styles.feedbackText}>Nenhum animal cadastrado para adoção.</Text>
+                <Text style={styles.feedbackText}>{emptyText}</Text>
+                {!user ? (
+                  <Pressable style={styles.loginButton} onPress={() => router.push("/login")}>
+                    <Text style={styles.loginButtonText}>ENTRAR</Text>
+                  </Pressable>
+                ) : null}
               </View>
             )
           }
@@ -301,10 +303,10 @@ type PetCardProps = {
   pet: Pet;
   width: number;
   onPress: (pet: Pet) => void;
-  onToggleFavorite: (pet: Pet) => void;
+  onRemoveFavorite: (pet: Pet) => void;
 };
 
-const PetCard = memo(function PetCard({ pet, width, onPress, onToggleFavorite }: PetCardProps) {
+const PetCard = memo(function PetCard({ pet, width, onPress, onRemoveFavorite }: PetCardProps) {
   const imageListRef = useRef<FlatList<string>>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const imageUris = pet.imagemUris.length > 0
@@ -347,16 +349,12 @@ const PetCard = memo(function PetCard({ pet, width, onPress, onToggleFavorite }:
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${pet.favorito ? "Desfavoritar" : "Favoritar"} ${pet.nome}`}
+          accessibilityLabel={`Desfavoritar ${pet.nome}`}
           hitSlop={8}
-          onPress={() => onToggleFavorite(pet)}
+          onPress={() => onRemoveFavorite(pet)}
           style={styles.favoriteButton}
         >
-          <MaterialIcons
-            name={pet.favorito ? "favorite" : "favorite-border"}
-            size={24}
-            color="#434343"
-          />
+          <MaterialIcons name="favorite" size={24} color="#434343" />
         </Pressable>
       </View>
 
@@ -505,6 +503,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#434343",
     textAlign: "center",
+  },
+  loginButton: {
+    minHeight: 44,
+    minWidth: 120,
+    backgroundColor: "#88C9BF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  loginButtonText: {
+    fontFamily: "Roboto_500Medium",
+    fontSize: 13,
+    color: "#434343",
   },
   cardWrapper: {
     backgroundColor: "#FFFFFF",
