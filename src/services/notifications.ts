@@ -192,6 +192,7 @@ async function handleAdoptionNotificationAction(actionIdentifier: AdoptionNotifi
   const conversationId = data.conversaId ?? data.conversationId;
   const ownerId = data.ownerId;
   const petName = data.petName;
+  const petId = data.petId;
 
   if (!conversationId || !ownerId || !petName) {
     console.warn("Notificação de adoção sem dados suficientes para responder.", data);
@@ -200,16 +201,17 @@ async function handleAdoptionNotificationAction(actionIdentifier: AdoptionNotifi
 
   const message = getAdoptionActionMessage(actionIdentifier, petName);
   const shouldFinishRequest = actionIdentifier !== START_ADOPTION_CHAT_ACTION_ID;
+  const isAccepted = actionIdentifier === ACCEPT_ADOPTION_ACTION_ID;
   const conversationRef = doc(db, "conversa", conversationId);
   const messageRef = doc(collection(db, "conversa", conversationId, "mensagens"));
 
   await runTransaction(db, async (transaction) => {
     const conversationSnapshot = await transaction.get(conversationRef);
-    const conversation = conversationSnapshot.data() as
-      | {
-          adoptionResponseAction?: string | null;
-        }
-      | undefined;
+    const conversation = conversationSnapshot.data() as {
+      adoptionResponseAction?: string | null;
+      interessadoUserId?: string;
+      interessasdoUserId?: string;
+    } | undefined;
 
     if (conversation?.adoptionResponseAction) {
       return;
@@ -238,9 +240,25 @@ async function handleAdoptionNotificationAction(actionIdentifier: AdoptionNotifi
           }
         : { adoptionRequestActive: true }),
     });
+
+    // Se aceitou a adoção, transfere o animal para o adotante
+    if (isAccepted && petId) {
+      const newOwnerId =
+        conversation?.interessadoUserId?.trim() ||
+        conversation?.interessasdoUserId?.trim();
+
+      if (newOwnerId) {
+        const animalRef = doc(db, "animals", petId);
+        transaction.update(animalRef, {
+          usuarioId: newOwnerId,  // transfere a propriedade
+          oculto: true,           // remove da listagem de adoção
+          adotadoEm: serverTimestamp(),
+          adotadoPor: newOwnerId,
+        });
+      }
+    }
   });
 }
-
 async function handleNotificationResponse(response: Notifications.NotificationResponse) {
   const data = response.notification.request.content.data;
 
