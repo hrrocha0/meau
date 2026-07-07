@@ -1,0 +1,69 @@
+import { Drawer } from "expo-router/drawer";
+import CustomDrawerContent from "@/src/components/CustomDrawerContent";
+
+export default function DrawerLayout() {
+  return (
+    <Drawer
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Drawer.Screen
+        name="index"
+        options={{
+          drawerLabel: "Home",
+        }}
+      />
+      <Drawer.Screen
+        name="register-animal"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="adotar"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="signup"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="meu-perfil"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="meus-pets"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="favoritos"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="em-breve"
+        options={{
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="mapa-global"
+        options={{
+          drawerLabel: "Mapa de Animais",
+          title: "Mapa Global",
+        }}
+      />
+    </Drawer>
+  );
+}
