@@ -9,7 +9,7 @@ const config: ExpoConfig = {
   splash: {
     image: "./assets/splash.png",
     resizeMode: "cover",
-    backgroundColor: "white",
+    backgroundColor: "#ffffff",
   },
   scheme: "meau",
   owner: "meau-2026-1",
@@ -17,7 +17,7 @@ const config: ExpoConfig = {
     package: "com.appunb.meau",
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
-      backgroundColor: "#F5A900",
+      backgroundColor: "#f5a900",
     },
     config: {
       googleMaps: {
