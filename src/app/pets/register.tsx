@@ -1,0 +1,446 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import * as Location from "expo-location";
+import { AppButton } from "@/src/components/appButton";
+import { ImageButton } from "@/src/components/imageButton";
+import { Checklist } from "@/src/components/checklist";
+import { RadioList } from "@/src/components/radioList";
+import { InputField } from "@/src/components/inputField";
+import { colors } from "@/constants";
+import { useAuth } from "@/src/contexts/AuthContext";
+import { db } from "@/firebaseConfig";
+import {
+  decodeBase64Image,
+  MAX_PET_PHOTOS,
+  pickPetPhotoFromCamera,
+  pickPetPhotosFromGallery,
+  type PetPhoto,
+} from "@/src/utils/petImages";
+
+export default function Register() {
+  const router = useRouter();
+  const { isAuthResolved, user } = useAuth();
+
+  const [animalName, setAnimalName] = useState("");
+  const [species, setSpecies] = useState("");
+  const [sex, setSex] = useState("");
+  const [size, setSize] = useState("");
+  const [ageGroup, setAgeGroup] = useState("");
+  const [temperaments, setTemperaments] = useState<string[]>([]);
+  const [healthItems, setHealthItems] = useState<string[]>([]);
+  const [diseases, setDiseases] = useState("");
+  const [about, setAbout] = useState("");
+  const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function resetForm() {
+    setAnimalName("");
+    setSpecies("");
+    setSex("");
+    setSize("");
+    setAgeGroup("");
+    setTemperaments([]);
+    setHealthItems([]);
+    setDiseases("");
+    setAbout("");
+    setPetPhotos([]);
+    setIsSubmitting(false);
+  }
+
+  useEffect(() => {
+    if (!isAuthResolved) {
+      return;
+    }
+
+    if (!user) {
+      router.replace("/error");
+    }
+  }, [isAuthResolved, router, user]);
+
+  if (!isAuthResolved || !user) {
+    return null;
+  }
+
+  const currentUser = user;
+
+  const missingFields = [
+    animalName.trim().length >= 2 ? null : "nome",
+    species.trim().length > 0 ? null : "espécie",
+    sex.trim().length > 0 ? null : "sexo",
+    size.trim().length > 0 ? null : "porte",
+    ageGroup.trim().length > 0 ? null : "idade",
+    about.trim().length >= 3 ? null : "descrição",
+  ].filter(Boolean);
+
+  const isFormValid = missingFields.length === 0;
+
+  function appendPetPhotos(newPhotos: PetPhoto[] | null) {
+    if (!newPhotos || newPhotos.length === 0) {
+      return;
+    }
+
+    setPetPhotos((currentPhotos) => {
+      const availableSlots = MAX_PET_PHOTOS - currentPhotos.length;
+      return [...currentPhotos, ...newPhotos.slice(0, availableSlots)];
+    });
+  }
+
+  function removePetPhoto(photoId: string) {
+    setPetPhotos((currentPhotos) => currentPhotos.filter((photo) => photo.id !== photoId));
+  }
+
+  async function choosePetPhotosFromGallery() {
+    const selectedPhotos = await pickPetPhotosFromGallery(petPhotos.length);
+
+    if (selectedPhotos?.length === 0) {
+      alert(`Você pode adicionar até ${MAX_PET_PHOTOS} fotos por animal.`);
+      return;
+    }
+
+    appendPetPhotos(selectedPhotos);
+  }
+
+  async function choosePetPhotoFromCameraOption() {
+    if (petPhotos.length >= MAX_PET_PHOTOS) {
+      alert(`Você pode adicionar até ${MAX_PET_PHOTOS} fotos por animal.`);
+      return;
+    }
+
+    appendPetPhotos(await pickPetPhotoFromCamera());
+  }
+
+  function choosePetImage() {
+    if (Platform.OS === "web") {
+      void choosePetPhotosFromGallery();
+      return;
+    }
+
+    Alert.alert("Foto do animal", "Escolha uma opção", [
+      {
+        text: "Câmera",
+        onPress: async () => {
+          await choosePetPhotoFromCameraOption();
+        },
+      },
+      {
+        text: "Galeria",
+        onPress: async () => {
+          await choosePetPhotosFromGallery();
+        },
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
+  }
+
+  async function registerAnimal() {
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!isFormValid) {
+      alert(`Preencha os campos obrigatórios: ${missingFields.join(", ")}.`);
+      return;
+    }
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        alert("Permissão de localização negada.");
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      setIsSubmitting(true);
+      const serializedPhotos = petPhotos.map((photo) => ({
+        base64: photo.base64,
+        mimeType: photo.mimeType,
+        largura: photo.width,
+        altura: photo.height,
+      }));
+      const mainPhotoDataUri = petPhotos[0] ? decodeBase64Image(petPhotos[0].base64, petPhotos[0].mimeType) : "";
+
+      await addDoc(collection(db, "animals"), {
+        usuarioId: currentUser.uid,
+        nome: animalName.trim(),
+        finalidade: "adocao",
+        oculto: false,
+        especie: species,
+        sexo: sex,
+        porte: size,
+        faixaEtaria: ageGroup,
+        temperamentos: temperaments,
+        saude: healthItems,
+        doencas: diseases.trim(),
+        descricao: about.trim(),
+        fotoUrl: mainPhotoDataUri,
+        fotos: serializedPhotos,
+        totalFotos: serializedPhotos.length,
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        criadoEm: serverTimestamp(),
+      });
+
+      resetForm();
+      alert("Animal cadastrado com sucesso.");
+      router.replace("/(drawer)");
+    } catch (submitError: any) {
+      console.error("Erro ao cadastrar animal:", submitError);
+      alert(`Erro ao cadastrar animal: ${submitError.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="dark" />
+      <View style={styles.header}>
+        <SafeAreaView edges={["top"]}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{ margin: 16 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  router.back();
+                }}
+              >
+                <Ionicons name="arrow-back" size={24} color={colors.onPrimary} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ margin: 16 }}>
+              <Text style={styles.text0}>Cadastro do Animal</Text>
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
+
+      <View style={styles.body}>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={{ margin: 16 }}>
+              <Text style={styles.text1}>Tenho interesse em cadastrar o animal para:</Text>
+            </View>
+
+            <View style={{ flexDirection: "row", marginHorizontal: 24, gap: 8 }}>
+              <AppButton width={100} backgroundColor={colors.primary} textColor={colors.onPrimary} text="ADOÇÃO" />
+            </View>
+
+            <View style={styles.formContainer}>
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.text2}>Adoção</Text>
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>NOME DO ANIMAL</Text>
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <InputField placeholder="Nome do animal" value={animalName} onChangeText={setAnimalName} />
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>FOTOS DO ANIMAL</Text>
+              </View>
+
+              <View style={{ alignItems: "center", marginTop: 16 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoList}>
+                  {petPhotos.map((photo, index) => (
+                    <View key={photo.id} style={styles.photoCard}>
+                      <Image source={{ uri: photo.previewUri }} style={styles.petImagePreview} />
+                      <TouchableOpacity style={styles.removePhotoButton} onPress={() => removePetPhoto(photo.id)}>
+                        <Ionicons name="close-circle" size={22} color={colors.primary} />
+                      </TouchableOpacity>
+                      <Text style={styles.photoIndexText}>{index + 1}</Text>
+                    </View>
+                  ))}
+
+                  {petPhotos.length < MAX_PET_PHOTOS ? (
+                    <ImageButton
+                      width={160}
+                      height={85}
+                      text={petPhotos.length === 0 ? "adicionar fotos" : "adicionar mais"}
+                      onPress={choosePetImage}
+                    />
+                  ) : null}
+                </ScrollView>
+              </View>
+
+              <View style={{ marginTop: 8 }}>
+                <Text style={styles.text4}>Até {MAX_PET_PHOTOS} fotos por animal.</Text>
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>ESPÉCIE</Text>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <RadioList items={["Cachorro", "Gato"]} value={species} onChange={setSpecies} />
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>SEXO</Text>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <RadioList items={["Macho", "Fêmea"]} value={sex} onChange={setSex} />
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>PORTE</Text>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <RadioList items={["Pequeno", "Médio", "Grande"]} value={size} onChange={setSize} />
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>IDADE</Text>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <RadioList items={["Filhote", "Adulto", "Idoso"]} value={ageGroup} onChange={setAgeGroup} />
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>TEMPERAMENTO</Text>
+              </View>
+
+              <View style={{ marginTop: 16, gap: 28 }}>
+                <Checklist
+                  items={["Brincalhão", "Tímido", "Calmo"]}
+                  selectedItems={temperaments}
+                  onChange={setTemperaments}
+                />
+                <Checklist
+                  items={["Guarda", "Amoroso", "Preguiçoso"]}
+                  selectedItems={temperaments}
+                  onChange={setTemperaments}
+                />
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.text3}>SAÚDE</Text>
+              </View>
+
+              <View style={{ marginTop: 16, gap: 28 }}>
+                <Checklist items={["Vacinado", "Vermifugado"]} selectedItems={healthItems} onChange={setHealthItems} />
+                <Checklist items={["Castrado", "Doente"]} selectedItems={healthItems} onChange={setHealthItems} />
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <InputField placeholder="Doenças do animal" value={diseases} onChangeText={setDiseases} />
+              </View>
+
+              <View style={{ marginTop: 28 }}>
+                <Text style={styles.text3}>SOBRE O ANIMAL</Text>
+              </View>
+
+              <View style={{ marginTop: 20 }}>
+                <InputField placeholder="Compartilhe a história do animal" value={about} onChangeText={setAbout} />
+              </View>
+            </View>
+
+            <View style={{ marginVertical: 24 }}>
+              <AppButton
+                text={isSubmitting ? "SALVANDO..." : "COLOCAR PARA ADOÇÃO"}
+                backgroundColor="#ffd358"
+                textColor="#434343"
+                onPress={registerAnimal}
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  header: {
+    elevation: 4,
+    backgroundColor: colors.primary,
+  },
+  body: {
+    flex: 1,
+  },
+  scrollContent: {
+    alignItems: "center",
+    paddingBottom: 24,
+  },
+  formContainer: {
+    width: 328,
+  },
+  petImagePreview: {
+    width: 160,
+    height: 85,
+    borderRadius: 8,
+    resizeMode: "cover",
+  },
+  photoList: {
+    gap: 12,
+    paddingHorizontal: 8,
+  },
+  photoCard: {
+    position: "relative",
+  },
+  removePhotoButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+  },
+  photoIndexText: {
+    marginTop: 6,
+    textAlign: "center",
+    fontFamily: "Roboto_400Regular",
+    fontSize: 12,
+    color: "#757575",
+  },
+  text0: {
+    textAlign: "left",
+    fontFamily: "Roboto_500Medium",
+    fontSize: 20,
+    color: colors.onSecondaryContainer,
+  },
+  text1: {
+    textAlign: "center",
+    fontFamily: "Roboto_400Regular",
+    fontSize: 14,
+    color: colors.onSurfaceContainer,
+  },
+  text2: {
+    textAlign: "left",
+    fontFamily: "Roboto_500Medium",
+    fontSize: 16,
+    color: "#434343",
+  },
+  text3: {
+    textAlign: "left",
+    fontFamily: "Roboto_400Regular",
+    fontSize: 12,
+    color: "#f7a800",
+  },
+  text4: {
+    textAlign: "left",
+    fontFamily: "Roboto_400Regular",
+    fontSize: 14,
+    color: "#757575",
+  },
+  text5: {
+    textAlign: "left",
+    fontFamily: "Roboto_400Regular",
+    fontSize: 14,
+    color: "#bdbdbd",
+  },
+});

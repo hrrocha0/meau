@@ -12,13 +12,14 @@
 
 ## Sobre
 
-Aplicativo [Expo](https://docs.expo.dev/) sendo implementado para a disciplina de Desenvolvimento de Aplicativos. Atualmente, possui as seguintes funcionalidades:
+Aplicativo [Expo](https://docs.expo.dev/) implementado para a disciplina de Desenvolvimento de Aplicativos. Atualmente, possui as seguintes funcionalidades:
 
 - [x] Autenticação;
 - [x] Cadastro de animais;
 - [x] Visualização de animais cadastrados;
 - [X] Chat; 
 - [X] Mapas e localização; 
+- [X] Notificações.
 
 ## Instruções
 
