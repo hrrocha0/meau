@@ -9,6 +9,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "@/src/contexts/AuthContext";
 import { configureNotificationResponseHandling } from "@/src/services/notifications";
 
+// Registra o handler de notificações imediatamente, antes de qualquer render
+const cleanupNotifications = configureNotificationResponseHandling();
+
 const GUEST_ALLOWED_ROUTES = new Set(["login", "error"]);
 const UNAUTH_ONLY_ROUTES = new Set(["login"]);
 
@@ -64,7 +67,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    return configureNotificationResponseHandling();
+    return cleanupNotifications;
   }, []);
 
   if (!fontsLoaded) {
